@@ -30,81 +30,90 @@ $parameters = [
     "solution_user_types" => "",
     "validation_title" => "",
     "validation_message" => "",
-    "validation_user_types" => ""
+    "validation_user_types" => "",
+    "enable_attachments" => "0",
+    "color_header" => "#005a8d",
+    "color_buttons" => "#486d1b",
+    "color_background" => "#ffffff",
+    "color_text" => "#333333"
 ];
 
 $write_log = '1';
-
-$table = "glpi_users";
-$field = "fcm_token";
-$type = "VARCHAR(255)";
-
 $plugin_name = "uniapp";
-
 $config_table_name = "glpi_plugin_" . $plugin_name . "_config";
 $configfile = __DIR__ . "/" . $plugin_name . ".cfg";
 $logfile = "/opt/unihelp-prod/glpi/public/uniapp.log";
 
-
-$fd = fopen($configfile, 'r') or die("Não foi possível abrir o arquivo de configuração '" . $configfile . "'");
-while (!feof($fd)) {
-    $str = trim(fgets($fd));
-    $a = explode("=", $str, 2);
-
-    if ($a[0] === 'write_log') {
-        $write_log = $a[1];
-    } elseif (array_key_exists($a[0], $parameters)) {
-        $parameters[$a[0]] = $a[1];
-
-    }
-}
-fclose($fd);
-
-if ($write_log === "") {
-    $write_log = '1';
+$fd = null;
+if (file_exists($configfile)) {
+    $fd = fopen($configfile, 'r');
 }
 
-foreach (array_keys($parameters) as $key) {
-    if ($parameters[$key] == "") {
-        die("Parâmetro '" . $key . "' está vazio. Verifique o arquivo de configuração '" . $configfile . "'");
+if ($fd) {
+    // Lê variaveis do arquivo de configuracao se existir
+    while (!feof($fd)) {
+        $str = trim(fgets($fd));
+        if ($str === '') {
+            continue;
+        }
+
+        $a = explode("=", $str, 2);
+
+        if ($a[0] === 'write_log') {
+            $write_log = $a[1];
+        } elseif (array_key_exists($a[0], $parameters)) {
+            $parameters[$a[0]] = $a[1];
+        }
     }
+
+    fclose($fd);
 }
 
 global $DB;
 
-$migration = new Migration(100);
-
 if (!$DB->tableExists($config_table_name)) {
+    // Cria tabela de configuracoes com chave unica para nao duplicar parametros
     $query = "CREATE TABLE $config_table_name (
                   id INT AUTO_INCREMENT PRIMARY KEY,
                   par_name VARCHAR(255) NOT NULL,
-                  par_value TEXT NOT NULL
-               )";
+                  par_value TEXT NOT NULL,
+                  UNIQUE KEY (par_name)
+               ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     $DB->queryOrDie($query, $DB->error());
 }
 
-foreach (array_keys($parameters) as $key) {
-    $value = addslashes($parameters[$key]);
-    $query = "INSERT INTO $config_table_name (par_name,par_value) VALUES ('$key','$value')";
+foreach ($parameters as $key => $value) {
+    $escapedKey = $DB->escape($key);
+    $escapedValue = $DB->escape($value);
+    $query = "INSERT INTO $config_table_name (par_name,par_value)
+                 VALUES ('$escapedKey','$escapedValue')
+                 ON DUPLICATE KEY UPDATE par_value = '$escapedValue'";
     $DB->queryOrDie($query, $DB->error());
 }
 
-$DB->queryOrDie("DELETE FROM $config_table_name WHERE par_name IN ('write_log','log_file')", $DB->error());
-$log_value = addslashes($logfile);
-$write_log_value = addslashes($write_log);
-$query = "INSERT INTO $config_table_name (par_name,par_value) VALUES ('write_log','$write_log_value')";
+$log_value = $DB->escape($logfile);
+$write_log_value = $DB->escape($write_log);
+$query = "INSERT INTO $config_table_name (par_name,par_value)
+             VALUES ('write_log','$write_log_value')
+             ON DUPLICATE KEY UPDATE par_value = '$write_log_value'";
 $DB->queryOrDie($query, $DB->error());
-$query = "INSERT INTO $config_table_name (par_name,par_value) VALUES ('log_file','$log_value')";
+$query = "INSERT INTO $config_table_name (par_name,par_value)
+             VALUES ('log_file','$log_value')
+             ON DUPLICATE KEY UPDATE par_value = '$log_value'";
 $DB->queryOrDie($query, $DB->error());
 
-if ($DB->tableExists($table)) {
-    if (!$DB->fieldExists($table, $field, false)) {
-        $migration->addField(
-            $table,
-            $field,
-            $type
-        );
-    }
+// Cria tabela de tokens para nao alterar a tabela nativa de usuarios
+$token_table = "glpi_plugin_" . $plugin_name . "_user_tokens";
+
+if (!$DB->tableExists($token_table)) {
+    $query = "CREATE TABLE $token_table (
+                  id INT AUTO_INCREMENT PRIMARY KEY,
+                  users_id INT NOT NULL,
+                  fcm_token VARCHAR(255) NOT NULL,
+                  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                  UNIQUE KEY (users_id),
+                  INDEX (fcm_token),
+                  CONSTRAINT fk_uniapp_user FOREIGN KEY (users_id) REFERENCES glpi_users(id) ON DELETE CASCADE
+               ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    $DB->queryOrDie($query, $DB->error());
 }
-
-$migration->executeMigration();

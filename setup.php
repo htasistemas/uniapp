@@ -5,9 +5,11 @@ function plugin_init_uniapp()
     global $PLUGIN_HOOKS;
 
     Plugin::registerClass(PluginUniappEvent::class);
-
+    Plugin::registerClass(PluginUniappConfig::class);
 
     $PLUGIN_HOOKS['csrf_compliant']['uniapp'] = true;
+    // Define a pagina de configuracao customizada
+    $PLUGIN_HOOKS['config_page']['uniapp'] = 'front/config.php';
     $PLUGIN_HOOKS['item_add']['uniapp'] = [
         Ticket::class => 'plugin_uniapp_item_add',
         ITILFollowup::class => 'plugin_uniapp_followup_add',

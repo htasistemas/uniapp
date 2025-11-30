@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuração do Plugin - Mockup GLPI</title>
+    <!-- Ícones do FontAwesome para parecer com o GLPI -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- Estilos Base (Simulando GLPI) --- */
+        :root {
+            --glpi-blue: #005a8d;
+            --glpi-bg: #f5f7f9;
+            --glpi-border: #dcdcdc;
+            --glpi-green: #486d1b;
+            --glpi-text: #4a4a4a;
+            --glpi-white: #ffffff;
+        }
+
+        body {
+            font-family: 'Roboto', 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--glpi-bg);
+            color: var(--glpi-text);
+            margin: 0;
+            padding: 20px;
+            font-size: 13px;
+        }
+
+        /* --- Estrutura da Aba --- */
+        .glpi-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--glpi-white);
+            border: 1px solid var(--glpi-border);
+            border-top: 3px solid var(--glpi-blue);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-radius: 4px;
+        }
+
+        .header-tab {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--glpi-border);
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-tab h2 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--glpi-blue);
+            font-weight: 500;
+        }
+
+        /* --- Formulário --- */
+        .form-content {
+            padding: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            margin-bottom: 20px;
+            align-items: center;
+            border-bottom: 1px dotted #eee;
+            padding-bottom: 15px;
+        }
+
+        .form-group:last-child {
+            border-bottom: none;
+        }
+
+        .label-col {
+            width: 25%;
+            font-weight: 600;
+            text-align: right;
+            padding-right: 20px;
+            color: #333;
+        }
+
+        .input-col {
+            width: 75%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* --- Inputs Estilizados --- */
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            max-width: 400px;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 13px;
+            transition: border 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--glpi-blue);
+            outline: none;
+        }
+
+        /* --- Switch/Toggle para Anexos --- */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 22px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--glpi-green);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(18px);
+        }
+
+        /* --- Seção de Cores --- */
+        .colors-section {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 4px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .color-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            justify-content: space-between;
+        }
+
+        .color-row label {
+            width: 40%;
+            font-weight: normal;
+        }
+
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            width: 60%;
+            gap: 10px;
+        }
+
+        .color-input-visual {
+            width: 40px;
+            height: 34px;
+            padding: 0;
+            border: none;
+            background: none;
+            cursor: pointer;
+        }
+
+        .color-input-hex {
+            width: 100px !important;
+            text-transform: uppercase;
+        }
+
+        /* --- Botão Salvar --- */
+        .form-actions {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--glpi-border);
+            text-align: center;
+        }
+
+        .btn-save {
+            background-color: var(--glpi-green);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            font-size: 14px;
+            border-radius: 3px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .btn-save:hover {
+            background-color: #3a5816;
+        }
+
+        /* Ajuda / Dicas */
+        .help-text {
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+            display: block;
+        }
+
+        /* Responsividade básica */
+        @media (max-width: 768px) {
+            .form-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .label-col {
+                width: 100%;
+                text-align: left;
+                margin-bottom: 5px;
+            }
+            .input-col {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="glpi-container">
+    <!-- Cabeçalho Simulado -->
+    <div class="header-tab">
+        <i class="fa-solid fa-puzzle-piece fa-lg" style="color: var(--glpi-blue);"></i>
+        <h2>Configuração do Plugin App</h2>
+    </div>
+
+    <form class="form-content" onsubmit="event.preventDefault(); alert('Configurações salvas (simulação)!');">
+
+        <!-- Campo 1: Token FCM -->
+        <div class="form-group">
+            <div class="label-col">
+                <label for="fcm_token">Chave Token do FCM</label>
+            </div>
+            <div class="input-col" style="display: block;">
+                <input type="text" id="fcm_token" name="fcm_token" placeholder="Ex: AAAABBBBCCCC..." style="width: 100%;">
+                <span class="help-text"><i class="fa-solid fa-circle-info"></i> Insira a chave do servidor do Firebase Cloud Messaging para notificações push.</span>
+            </div>
+        </div>
+
+        <!-- Campo 2: Anexos -->
+        <div class="form-group">
+            <div class="label-col">
+                <label for="attach_files">Incluir Anexos</label>
+            </div>
+            <div class="input-col">
+                <label class="switch">
+                    <input type="checkbox" id="attach_files" name="attach_files" checked>
+                    <span class="slider"></span>
+                </label>
+                <span style="margin-left: 10px; color: #666;">Permitir visualização de anexos no app</span>
+            </div>
+        </div>
+
+        <!-- Campo 3: Cores -->
+        <div class="form-group">
+            <div class="label-col">
+                <label>Personalização Visual</label>
+            </div>
+            <div class="input-col">
+
+                <div class="colors-section">
+                    <!-- Cor 1: Header -->
+                    <div class="color-row">
+                        <label for="color_header">Cor do Cabeçalho</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="picker_header" class="color-input-visual" value="#005a8d">
+                            <input type="text" id="hex_header" class="color-input-hex" value="#005a8d" maxlength="7">
+                        </div>
+                    </div>
+
+                    <!-- Cor 2: Botões -->
+                    <div class="color-row">
+                        <label for="color_btn">Cor dos Botões</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="picker_btn" class="color-input-visual" value="#486d1b">
+                            <input type="text" id="hex_btn" class="color-input-hex" value="#486d1b" maxlength="7">
+                        </div>
+                    </div>
+
+                    <!-- Cor 3: Fundo -->
+                    <div class="color-row">
+                        <label for="color_bg">Cor de Fundo do App</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="picker_bg" class="color-input-visual" value="#ffffff">
+                            <input type="text" id="hex_bg" class="color-input-hex" value="#ffffff" maxlength="7">
+                        </div>
+                    </div>
+
+                    <!-- Cor 4: Texto -->
+                    <div class="color-row">
+                        <label for="color_text">Cor do Texto Principal</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="picker_text" class="color-input-visual" value="#333333">
+                            <input type="text" id="hex_text" class="color-input-hex" value="#333333" maxlength="7">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div class="form-actions">
+            <button type="submit" class="btn-save">
+                <i class="fa-solid fa-floppy-disk"></i> Salvar Configurações
+            </button>
+        </div>
+
+    </form>
+</div>
+
+<script>
+    // Script para sincronizar o input de cor com o input de texto Hexadecimal
+    document.addEventListener('DOMContentLoaded', () => {
+
+        const colorPairs = [
+            { picker: 'picker_header', text: 'hex_header' },
+            { picker: 'picker_btn', text: 'hex_btn' },
+            { picker: 'picker_bg', text: 'hex_bg' },
+            { picker: 'picker_text', text: 'hex_text' }
+        ];
+
+        colorPairs.forEach(pair => {
+            const picker = document.getElementById(pair.picker);
+            const text = document.getElementById(pair.text);
+
+            // Quando muda a cor no seletor visual
+            picker.addEventListener('input', (e) => {
+                text.value = e.target.value.toUpperCase();
+            });
+
+            // Quando muda o texto Hexadecimal
+            text.addEventListener('input', (e) => {
+                let val = e.target.value;
+                // Adiciona # se o usuário esqueceu
+                if (!val.startsWith('#') && (val.length === 3 || val.length === 6)) {
+                    val = '#' + val;
+                }
+
+                // Valida se é um hex válido antes de aplicar
+                if (/^#[0-9A-F]{6}$/i.test(val)) {
+                    picker.value = val;
+                }
+            });
+        });
+    });
+</script>
+</body>
+</html>
