@@ -5,6 +5,8 @@ include GLPI_ROOT . '/inc/includes.php';
 // Garante que o plugin UniApp esteja carregado antes de usar as classes
 Plugin::load('uniapp');
 
+require_once __DIR__ . '/../inc/PluginUniappConfig.class.php';
+
 Session::checkLoginUser();
 Session::checkRight('config', UPDATE);
 
