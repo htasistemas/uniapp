@@ -1,5 +1,5 @@
 <?php
-define('GLPI_ROOT', '../../../..');
+define('GLPI_ROOT', '../../..');
 include GLPI_ROOT . '/inc/includes.php';
 
 // Garante que o plugin UniApp esteja carregado antes de usar as classes
