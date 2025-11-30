@@ -1,13 +1,11 @@
 <?php
 
-require_once __DIR__ . '/install.php';
-require_once __DIR__ . '/uninstall.php';
-
 function plugin_init_uniapp()
 {
     global $PLUGIN_HOOKS;
 
     Plugin::registerClass(PluginUniappEvent::class);
+
 
     $PLUGIN_HOOKS['csrf_compliant']['uniapp'] = true;
     $PLUGIN_HOOKS['item_add']['uniapp'] = [
@@ -22,12 +20,11 @@ function plugin_version_uniapp()
 {
     return [
         'name' => 'UniApp',
-        'version' => '1.10',
+        'version' => '1.11',
         'author' => 'Unitá Soluções Digitais',
         'license' => '',
         'homepage' => 'https://unitasolucoes.com.br/',
-        'minGlpiVersion' => '10.0,0',
-        'maxGlpiVersion' => '10.0,99'
+        'minGlpiVersion' => ''
     ];
 }
 

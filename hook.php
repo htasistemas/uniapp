@@ -1,6 +1,16 @@
 <?php
 
-require_once __DIR__ . '/inc/event.class.php';
+function plugin_uniapp_install()
+{
+    require_once 'install.php';
+    return true;
+}
+
+function plugin_uniapp_uninstall()
+{
+    require_once 'uninstall.php';
+    return true;
+}
 
 function plugin_uniapp_item_add(Ticket $ticket)
 {

@@ -1,23 +1,32 @@
 <?php
 
-function plugin_uniapp_uninstall() {
-    global $DB;
+global $DB;
 
-    $plugin_name = 'uniapp';
-    $config_table_name = 'glpi_plugin_' . $plugin_name . '_config';
-    $table = 'glpi_users';
-    $field = 'fcm_token';
-    $migration = new Migration(100);
+$table = "glpi_users";
+$field = "fcm_token";
 
-    if ($DB->tableExists($config_table_name)) {
-        $migration->dropTable($config_table_name);
-    }
+$plugin_name = "uniapp";
 
-    if ($DB->tableExists($table) && $DB->fieldExists($table, $field, false)) {
-        $migration->dropField($table, $field);
-    }
+$config_table_name = "glpi_plugin_" . $plugin_name . "_config";
 
-    $migration->executeMigration();
+$migration = new Migration(100);
 
-    return true;
+if ($DB->tableExists($config_table_name)) {
+    $query = "DROP TABLE `$config_table_name`";
+    $DB->queryOrDie(
+        $query,
+        $DB->error()
+    );
+
 }
+
+if ($DB->tableExists($table)) {
+    if ($DB->fieldExists($table, $field, false)) {
+        $migration->dropField(
+            $table,
+            $field
+        );
+    }
+}
+
+$migration->executeMigration();
