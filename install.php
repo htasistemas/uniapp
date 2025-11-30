@@ -1,7 +1,7 @@
 <?php
 /**
  * Hook de instalação/atualização do plugin UNIAPP
- * Compatível com GLPI 11.x
+ * Compatível com GLPI 10.x
  */
 
 function plugin_uniapp_install() {

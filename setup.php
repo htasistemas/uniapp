@@ -22,11 +22,12 @@ function plugin_version_uniapp()
 {
     return [
         'name' => 'UniApp',
-        'version' => '1.11',
+        'version' => '1.10',
         'author' => 'Unitá Soluções Digitais',
         'license' => '',
         'homepage' => 'https://unitasolucoes.com.br/',
-        'minGlpiVersion' => '11.0'
+        'minGlpiVersion' => '10.0',
+        'maxGlpiVersion' => '10.0'
     ];
 }
 
