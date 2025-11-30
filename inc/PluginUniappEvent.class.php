@@ -25,9 +25,10 @@ class PluginUniappEvent extends CommonDBTM
         $escapedToken = $DB->escape($token);
         $existingToken = null;
 
-        $result = $DB->query("SELECT fcm_token FROM " . self::TOKEN_TABLE . " WHERE users_id = $userId");
-        if ($result && ($row = $DB->fetch_assoc($result))) {
+        $query = "SELECT fcm_token FROM " . self::TOKEN_TABLE . " WHERE users_id = $userId";
+        foreach ($DB->request($query) as $row) {
             $existingToken = $row['fcm_token'];
+            break;
         }
 
         $alreadySynced = ($existingToken !== null && $existingToken === $token);

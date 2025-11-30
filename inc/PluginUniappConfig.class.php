@@ -21,8 +21,8 @@ class PluginUniappConfig extends CommonDBTM
             return $config;
         }
 
-        $result = $DB->query("SELECT par_name, par_value FROM " . self::CONFIG_TABLE);
-        while ($result && ($row = $DB->fetch_assoc($result))) {
+        $query = "SELECT par_name, par_value FROM " . self::CONFIG_TABLE;
+        foreach ($DB->request($query) as $row) {
             $config[$row['par_name']] = $row['par_value'];
         }
 
