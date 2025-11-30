@@ -26,8 +26,8 @@ function plugin_version_uniapp()
         'author' => 'Unitá Soluções Digitais',
         'license' => '',
         'homepage' => 'https://unitasolucoes.com.br/',
-        'minGlpiVersion' => '10.0',
-        'maxGlpiVersion' => '10.0'
+        'minGlpiVersion' => '10.0,0',
+        'maxGlpiVersion' => '10.0,99'
     ];
 }
 
