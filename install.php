@@ -107,13 +107,13 @@ $token_table = "glpi_plugin_" . $plugin_name . "_user_tokens";
 
 if (!$DB->tableExists($token_table)) {
     $query = "CREATE TABLE $token_table (
-                  id INT AUTO_INCREMENT PRIMARY KEY,
-                  users_id INT NOT NULL,
+                  id INT(10) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                  users_id INT(10) UNSIGNED NOT NULL,
                   fcm_token VARCHAR(255) NOT NULL,
                   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                   UNIQUE KEY (users_id),
                   INDEX (fcm_token),
                   CONSTRAINT fk_uniapp_user FOREIGN KEY (users_id) REFERENCES glpi_users(id) ON DELETE CASCADE
-               ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+               ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     $DB->queryOrDie($query, $DB->error());
 }
