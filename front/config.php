@@ -6,7 +6,7 @@ include GLPI_ROOT . '/inc/includes.php';
 Plugin::load('uniapp');
 
 Session::checkLoginUser();
-Session::checkRight('config', 'w');
+Session::checkRight('config', UPDATE);
 
 $message = '';
 $errors = [];
