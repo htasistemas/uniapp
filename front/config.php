@@ -1,6 +1,6 @@
 <?php
-define('GLPI_ROOT', '../../..');
-include GLPI_ROOT . '/inc/includes.php';
+define('GLPI_ROOT', dirname(__DIR__, 3));
+require_once GLPI_ROOT . '/inc/includes.php';
 
 // Garante que o plugin UniApp esteja carregado antes de usar as classes
 Plugin::load('uniapp');
