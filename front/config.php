@@ -10,9 +10,40 @@ require_once __DIR__ . '/../inc/PluginUniappConfig.class.php';
 Session::checkLoginUser();
 Session::checkRight('config', UPDATE);
 
+$defaultConfig = [
+    'fcm_project_id' => '',
+    'fcm_client_email' => '',
+    'fcm_private_key' => '',
+    'enable_attachments' => '0',
+    'color_header' => '#005a8d',
+    'color_buttons' => '#486d1b',
+    'color_background' => '#ffffff',
+    'color_text' => '#333333',
+    'ticket_title' => '',
+    'ticket_message' => '',
+    'ticket_user_types' => '',
+    'followup_title' => '',
+    'followup_message' => '',
+    'followup_user_types' => '',
+    'solution_title' => '',
+    'solution_message' => '',
+    'solution_user_types' => '',
+    'validation_title' => '',
+    'validation_message' => '',
+    'validation_user_types' => '',
+    'write_log' => '0',
+    'log_file' => ''
+];
+
 $message = '';
 $errors = [];
-$configValues = PluginUniappConfig::getAll();
+$configValues = array_merge($defaultConfig, PluginUniappConfig::getAll());
+$notificationSections = [
+    'ticket' => 'Chamado',
+    'followup' => 'Acompanhamento',
+    'solution' => 'Solução',
+    'validation' => 'Aprovação'
+];
 
 $csrfTokenName = 'plugin_uniapp_config_csrf';
 if (!isset($_SESSION[$csrfTokenName])) {
@@ -25,16 +56,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
     if (!hash_equals($csrfTokenValue, $submittedToken)) {
         $errors[] = 'Token de seguranca invalido';
     } else {
-        $payload = [
-            'fcm_project_id' => $_POST['fcm_project_id'] ?? '',
-            'fcm_client_email' => $_POST['fcm_client_email'] ?? '',
-            'fcm_private_key' => $_POST['fcm_private_key'] ?? '',
-            'enable_attachments' => isset($_POST['enable_attachments']) ? '1' : '0',
-            'color_header' => $_POST['color_header'] ?? '#005a8d',
-            'color_buttons' => $_POST['color_buttons'] ?? '#486d1b',
-            'color_background' => $_POST['color_background'] ?? '#ffffff',
-            'color_text' => $_POST['color_text'] ?? '#333333'
-        ];
+        $payload = [];
+        foreach ($defaultConfig as $field => $defaultValue) {
+            if ($field === 'enable_attachments' || $field === 'write_log') {
+                $payload[$field] = isset($_POST[$field]) ? '1' : '0';
+                continue;
+            }
+            $value = $_POST[$field] ?? '';
+            if ($field !== 'fcm_private_key') {
+                $value = trim($value);
+            }
+            $payload[$field] = $value;
+        }
 
         $errors = PluginUniappConfig::save($payload);
         if (empty($errors)) {
@@ -260,6 +293,19 @@ Html::header('Configuracao UniApp', $_SERVER['PHP_SELF'], 'plugins', 'uniapp');
         background-color: #3a5816;
     }
 
+    .section-heading {
+        margin: 25px 20px 5px;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--glpi-blue);
+    }
+
+    .section-description {
+        margin: 0 20px 15px;
+        font-size: 13px;
+        color: #666;
+    }
+
     .help-text {
         font-size: 11px;
         color: #888;
@@ -394,6 +440,69 @@ Html::header('Configuracao UniApp', $_SERVER['PHP_SELF'], 'plugins', 'uniapp');
                         </div>
                     <?php endforeach; ?>
                 </div>
+            </div>
+        </div>
+
+        <div class="section-heading">Mensagens de notificação</div>
+        <div class="section-description">
+            Defina os títulos, as mensagens e os tipos de usuário que devem receber cada notificação.
+        </div>
+        <?php foreach ($notificationSections as $key => $label): ?>
+            <div class="form-group">
+                <div class="label-col">
+                    <label for="<?php echo $key; ?>_title"><?php echo $label; ?> &mdash; Título</label>
+                </div>
+                <div class="input-col">
+                    <input type="text" id="<?php echo $key; ?>_title" name="<?php echo $key; ?>_title"
+                           value="<?php echo htmlspecialchars($configValues[$key . '_title'] ?? ''); ?>">
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="label-col">
+                    <label for="<?php echo $key; ?>_message"><?php echo $label; ?> &mdash; Mensagem</label>
+                </div>
+                <div class="input-col">
+                    <textarea id="<?php echo $key; ?>_message" name="<?php echo $key; ?>_message"
+                              placeholder="Mensagem exibida no aplicativo"><?php echo htmlspecialchars($configValues[$key . '_message'] ?? ''); ?></textarea>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="label-col">
+                    <label for="<?php echo $key; ?>_user_types"><?php echo $label; ?> &mdash; Tipos de usuário</label>
+                </div>
+                <div class="input-col">
+                    <input type="text" id="<?php echo $key; ?>_user_types" name="<?php echo $key; ?>_user_types"
+                           value="<?php echo htmlspecialchars($configValues[$key . '_user_types'] ?? ''); ?>"
+                           placeholder="Ex: 1,3,412">
+                    <span class="help-text">Informe os tipos de usuário (números separados por vírgula) conforme a tabela de direitos do GLPI.</span>
+                </div>
+            </div>
+        <?php endforeach; ?>
+        <div class="section-heading">Logs e auditoria</div>
+        <div class="section-description">
+            Ative o registro em arquivo caso queira acompanhar as operações do plugin.
+        </div>
+        <div class="form-group">
+            <div class="label-col">
+                <label for="write_log">Gerar log</label>
+            </div>
+            <div class="input-col">
+                <label class="switch">
+                    <input type="checkbox" id="write_log" name="write_log" <?php echo ($configValues['write_log'] ?? '0') === '1' ? 'checked' : ''; ?>>
+                    <span class="slider"></span>
+                </label>
+                <span class="help-text">Habilita o arquivo definido abaixo. Deixe desmarcado para desativar.</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="label-col">
+                <label for="log_file">Caminho do arquivo de log</label>
+            </div>
+            <div class="input-col">
+                <input type="text" id="log_file" name="log_file"
+                       value="<?php echo htmlspecialchars($configValues['log_file'] ?? ''); ?>"
+                       placeholder="/caminho/para/uniapp.log">
+                <span class="help-text">Informe um caminho absoluto válido. Deixe em branco para usar o log interno do GLPI.</span>
             </div>
         </div>
 

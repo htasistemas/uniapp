@@ -38,11 +38,11 @@ $parameters = [
     "color_text" => "#333333"
 ];
 
-$write_log = '1';
+$write_log = '0';
 $plugin_name = "uniapp";
 $config_table_name = "glpi_plugin_" . $plugin_name . "_config";
 $configfile = __DIR__ . "/" . $plugin_name . ".cfg";
-$logfile = "/opt/unihelp-prod/glpi/public/uniapp.log";
+$logfile = '';
 
 $fd = null;
 if (file_exists($configfile)) {
