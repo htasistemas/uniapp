@@ -14,24 +14,35 @@ $message = '';
 $errors = [];
 $configValues = PluginUniappConfig::getAll();
 
+$csrfTokenName = 'plugin_uniapp_config_csrf';
+if (!isset($_SESSION[$csrfTokenName])) {
+    $_SESSION[$csrfTokenName] = bin2hex(random_bytes(16));
+}
+$csrfTokenValue = $_SESSION[$csrfTokenName];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
-    Html::checkToken('PluginUniappConfig');
+    $submittedToken = $_POST['plugin_uniapp_csrf'] ?? '';
+    if (!hash_equals($csrfTokenValue, $submittedToken)) {
+        $errors[] = 'Token de seguranca invalido';
+    } else {
+        $payload = [
+            'fcm_project_id' => $_POST['fcm_project_id'] ?? '',
+            'fcm_client_email' => $_POST['fcm_client_email'] ?? '',
+            'fcm_private_key' => $_POST['fcm_private_key'] ?? '',
+            'enable_attachments' => isset($_POST['enable_attachments']) ? '1' : '0',
+            'color_header' => $_POST['color_header'] ?? '#005a8d',
+            'color_buttons' => $_POST['color_buttons'] ?? '#486d1b',
+            'color_background' => $_POST['color_background'] ?? '#ffffff',
+            'color_text' => $_POST['color_text'] ?? '#333333'
+        ];
 
-    $payload = [
-        'fcm_project_id' => $_POST['fcm_project_id'] ?? '',
-        'fcm_client_email' => $_POST['fcm_client_email'] ?? '',
-        'fcm_private_key' => $_POST['fcm_private_key'] ?? '',
-        'enable_attachments' => isset($_POST['enable_attachments']) ? '1' : '0',
-        'color_header' => $_POST['color_header'] ?? '#005a8d',
-        'color_buttons' => $_POST['color_buttons'] ?? '#486d1b',
-        'color_background' => $_POST['color_background'] ?? '#ffffff',
-        'color_text' => $_POST['color_text'] ?? '#333333'
-    ];
-
-    $errors = PluginUniappConfig::save($payload);
-    if (empty($errors)) {
-        $message = 'Configuracao salva com sucesso';
-        $configValues = array_merge($configValues, $payload);
+        $errors = PluginUniappConfig::save($payload);
+        if (empty($errors)) {
+            $message = 'Configuracao salva com sucesso';
+            $configValues = array_merge($configValues, $payload);
+            $_SESSION[$csrfTokenName] = bin2hex(random_bytes(16));
+            $csrfTokenValue = $_SESSION[$csrfTokenName];
+        }
     }
 }
 
@@ -307,7 +318,7 @@ Html::header('Configuracao UniApp', $_SERVER['PHP_SELF'], 'plugins', 'uniapp');
     <?php endif; ?>
 
     <form class="uniapp-form" method="post">
-        <?php echo Html::createToken('PluginUniappConfig'); ?>
+        <input type="hidden" name="plugin_uniapp_csrf" value="<?php echo htmlspecialchars($csrfTokenValue); ?>">
 
         <div class="form-group">
             <div class="label-col">
