@@ -10,10 +10,10 @@ require_once __DIR__ . '/../inc/PluginUniappConfig.class.php';
 Session::checkLoginUser();
 Session::checkRight('config', UPDATE);
 
-$defaultConfig = [
-    'fcm_project_id' => '',
-    'fcm_client_email' => '',
-    'fcm_private_key' => '',
+    $defaultConfig = [
+        'fcm_project_id' => '',
+        'fcm_client_email' => '',
+        'fcm_private_key' => '',
     'enable_attachments' => '0',
     'color_header' => '#005a8d',
     'color_buttons' => '#486d1b',
@@ -45,14 +45,14 @@ $notificationSections = [
     'validation' => 'Aprovação'
 ];
 
-$csrfTokenName = 'plugin_uniapp_config_csrf';
-if (!isset($_SESSION[$csrfTokenName])) {
-    $_SESSION[$csrfTokenName] = bin2hex(random_bytes(16));
-}
-$csrfTokenValue = $_SESSION[$csrfTokenName];
+    $csrfTokenName = 'PluginUniappConfig';
+    if (!isset($_SESSION[$csrfTokenName])) {
+        $_SESSION[$csrfTokenName] = bin2hex(random_bytes(16));
+    }
+    $csrfTokenValue = $_SESSION[$csrfTokenName];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
-    $submittedToken = $_POST['plugin_uniapp_csrf'] ?? '';
+    $submittedToken = $_POST[$csrfTokenName] ?? '';
     if (!hash_equals($csrfTokenValue, $submittedToken)) {
         $errors[] = 'Token de seguranca invalido';
     } else {
@@ -364,7 +364,7 @@ Html::header('Configuracao UniApp', $_SERVER['PHP_SELF'], 'plugins', 'uniapp');
     <?php endif; ?>
 
     <form class="uniapp-form" method="post">
-        <input type="hidden" name="plugin_uniapp_csrf" value="<?php echo htmlspecialchars($csrfTokenValue); ?>">
+        <input type="hidden" name="<?php echo $csrfTokenName; ?>" value="<?php echo htmlspecialchars($csrfTokenValue); ?>">
 
         <div class="form-group">
             <div class="label-col">
