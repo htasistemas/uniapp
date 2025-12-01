@@ -353,9 +353,6 @@ Html::header('Configuracao UniApp', $_SERVER['PHP_SELF'], 'plugins', 'uniapp');
     <?php endif; ?>
 
     <form class="uniapp-form" method="post" action="<?php echo $_SERVER['PHP_SELF']; ?>">
-        <?php echo Html::hidden('_glpi_csrf_token', [
-            'value' => Session::getNewCSRFToken()
-        ]); ?>
         <input type="hidden" name="PluginUniappConfig" value="1">
 
         <div class="form-group">
