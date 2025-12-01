@@ -352,7 +352,11 @@ Html::header('Configuracao UniApp', $_SERVER['PHP_SELF'], 'plugins', 'uniapp');
         </div>
     <?php endif; ?>
 
-    <form class="uniapp-form" method="post" action="<?php echo $_SERVER['PHP_SELF']; ?>">
+    <?php
+    Html::openForm($_SERVER['PHP_SELF'], 'uniapp_form', 'post', [
+       'class' => 'uniapp-form'
+    ]);
+    ?>
         <input type="hidden" name="PluginUniappConfig" value="1">
 
         <div class="form-group">
