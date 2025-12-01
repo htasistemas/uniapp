@@ -352,11 +352,10 @@ Html::header('Configuracao UniApp', $_SERVER['PHP_SELF'], 'plugins', 'uniapp');
         </div>
     <?php endif; ?>
 
-    <?php
-    Html::openForm($_SERVER['PHP_SELF'], 'uniapp_form', 'post', [
-       'class' => 'uniapp-form'
-    ]);
-    ?>
+    <form method="post" action="<?php echo $_SERVER['PHP_SELF']; ?>" class="uniapp-form">
+        <input type="hidden" name="_glpi_csrf_token"
+               value="<?php echo Session::getNewCSRFToken(); ?>">
+        <?php // Mantém compatibilidade com o salvamento existente. ?>
         <input type="hidden" name="PluginUniappConfig" value="1">
 
         <div class="form-group">
@@ -504,7 +503,7 @@ Html::header('Configuracao UniApp', $_SERVER['PHP_SELF'], 'plugins', 'uniapp');
                 <i class="fa-solid fa-floppy-disk"></i> Salvar configuracoes
             </button>
         </div>
-    <?php Html::closeForm(); ?>
+    </form>
 </div>
 
 <script>
