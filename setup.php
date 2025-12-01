@@ -7,7 +7,8 @@ function plugin_init_uniapp()
     Plugin::registerClass(PluginUniappEvent::class);
     Plugin::registerClass(PluginUniappConfig::class);
 
-    $PLUGIN_HOOKS['csrf_compliant']['uniapp'] = true;
+    // Plugin gere CSRF internamente, entao desliga o hook automatizado
+    $PLUGIN_HOOKS['csrf_compliant']['uniapp'] = false;
     // Define a pagina de configuracao customizada
     $PLUGIN_HOOKS['config_page']['uniapp'] = 'front/config.php';
     $PLUGIN_HOOKS['item_add']['uniapp'] = [
