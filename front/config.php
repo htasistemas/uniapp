@@ -45,17 +45,23 @@ $notificationSections = [
     'validation' => 'Aprovação'
 ];
 
+/**
+ * Usa o token CSRF global do GLPI; o header já garante que o
+ * `_glpi_csrf_token` esteja armazenado na sessao, entao nao o
+ * geramos manualmente para evitar sobrescrita.
+ */
 $csrfTokenName = '_glpi_csrf_token';
-if (!isset($_SESSION[$csrfTokenName])) {
+$csrfTokenValue = (string)($_SESSION[$csrfTokenName] ?? '');
+if ($csrfTokenValue === '') {
     $_SESSION[$csrfTokenName] = bin2hex(random_bytes(32));
+    $csrfTokenValue = $_SESSION[$csrfTokenName];
 }
-$csrfTokenValue = $_SESSION[$csrfTokenName];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
     $postedToken = $_POST[$csrfTokenName] ?? '';
     $postedForm = $_POST['PluginUniappConfig'] ?? '';
 
-    if ($postedToken !== $csrfTokenValue || $postedForm === '') {
+    if ($csrfTokenValue === '' || $postedToken !== $csrfTokenValue || $postedForm === '') {
         $errors[] = 'Token de seguranca invalido';
     } else {
         $payload = [];
@@ -75,8 +81,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
         if (empty($errors)) {
             $message = 'Configuracao salva com sucesso';
             $configValues = array_merge($configValues, $payload);
-            $_SESSION[$csrfTokenName] = bin2hex(random_bytes(32));
-            $csrfTokenValue = $_SESSION[$csrfTokenName];
         }
     }
 }
