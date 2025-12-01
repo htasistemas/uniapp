@@ -307,7 +307,7 @@ Html::header('Configuracao UniApp', $_SERVER['PHP_SELF'], 'plugins', 'uniapp');
     <?php endif; ?>
 
     <form class="uniapp-form" method="post">
-        <?php Html::sendForm('PluginUniappConfig'); ?>
+        <?php echo Html::createToken('PluginUniappConfig'); ?>
 
         <div class="form-group">
             <div class="label-col">
