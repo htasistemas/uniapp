@@ -45,17 +45,14 @@ $notificationSections = [
     'validation' => 'Aprovação'
 ];
 
-$csrfTokenName = 'plugin_uniapp_config_csrf';
-if (!isset($_SESSION[$csrfTokenName])) {
-    $_SESSION[$csrfTokenName] = bin2hex(random_bytes(16));
-}
-$csrfTokenValue = $_SESSION[$csrfTokenName];
+$csrfTokenName = '_glpi_csrf_token';
+$csrfTokenValue = (string)($_SESSION[$csrfTokenName] ?? '');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
     $postedToken = $_POST[$csrfTokenName] ?? '';
     $postedForm = $_POST['PluginUniappConfig'] ?? '';
 
-    if ($postedToken === '' || $postedToken !== $csrfTokenValue || $postedForm === '') {
+    if ($csrfTokenValue === '' || $postedToken === '' || $postedToken !== $csrfTokenValue || $postedForm === '') {
         $errors[] = 'Token de seguranca invalido';
     } else {
         $payload = [];
@@ -75,8 +72,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
         if (empty($errors)) {
             $message = 'Configuracao salva com sucesso';
             $configValues = array_merge($configValues, $payload);
-            $_SESSION[$csrfTokenName] = bin2hex(random_bytes(16));
-            $csrfTokenValue = $_SESSION[$csrfTokenName];
         }
     }
 }
@@ -366,7 +361,7 @@ Html::header('Configuracao UniApp', $_SERVER['PHP_SELF'], 'plugins', 'uniapp');
     <?php endif; ?>
 
     <form class="uniapp-form" method="post">
-        <input type="hidden" name="plugin_uniapp_csrf" value="<?php echo htmlspecialchars($csrfTokenValue); ?>">
+        <input type="hidden" name="_glpi_csrf_token" value="<?php echo htmlspecialchars($csrfTokenValue); ?>">
         <input type="hidden" name="PluginUniappConfig" value="1">
 
         <div class="form-group">
