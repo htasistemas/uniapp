@@ -45,34 +45,26 @@ $notificationSections = [
     'validation' => 'Aprovação'
 ];
 
-$csrfTokenName = '_glpi_csrf_token';
-$csrfTokenValue = (string)($_SESSION[$csrfTokenName] ?? '');
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
-    $postedToken = $_POST[$csrfTokenName] ?? '';
-    $postedForm = $_POST['PluginUniappConfig'] ?? '';
+    Session::checkCSRF($_POST);
 
-    if ($csrfTokenValue === '' || $postedToken === '' || $postedToken !== $csrfTokenValue || $postedForm === '') {
-        $errors[] = 'Token de seguranca invalido';
-    } else {
-        $payload = [];
-        foreach ($defaultConfig as $field => $defaultValue) {
-            if ($field === 'enable_attachments' || $field === 'write_log') {
-                $payload[$field] = isset($_POST[$field]) ? '1' : '0';
-                continue;
-            }
-            $value = $_POST[$field] ?? '';
-            if ($field !== 'fcm_private_key') {
-                $value = trim($value);
-            }
-            $payload[$field] = $value;
+    $payload = [];
+    foreach ($defaultConfig as $field => $defaultValue) {
+        if ($field === 'enable_attachments' || $field === 'write_log') {
+            $payload[$field] = isset($_POST[$field]) ? '1' : '0';
+            continue;
         }
+        $value = $_POST[$field] ?? '';
+        if ($field !== 'fcm_private_key') {
+            $value = trim($value);
+        }
+        $payload[$field] = $value;
+    }
 
-        $errors = PluginUniappConfig::save($payload);
-        if (empty($errors)) {
-            $message = 'Configuracao salva com sucesso';
-            $configValues = array_merge($configValues, $payload);
-        }
+    $errors = PluginUniappConfig::save($payload);
+    if (empty($errors)) {
+        $message = 'Configuracao salva com sucesso';
+        $configValues = array_merge($configValues, $payload);
     }
 }
 
@@ -360,8 +352,10 @@ Html::header('Configuracao UniApp', $_SERVER['PHP_SELF'], 'plugins', 'uniapp');
         </div>
     <?php endif; ?>
 
-    <form class="uniapp-form" method="post">
-        <input type="hidden" name="_glpi_csrf_token" value="<?php echo htmlspecialchars($csrfTokenValue); ?>">
+    <form class="uniapp-form" method="post" action="<?php echo $_SERVER['PHP_SELF']; ?>">
+        <?php echo Html::hidden('_glpi_csrf_token', [
+            'value' => Session::getNewCSRFToken()
+        ]); ?>
         <input type="hidden" name="PluginUniappConfig" value="1">
 
         <div class="form-group">
@@ -509,7 +503,7 @@ Html::header('Configuracao UniApp', $_SERVER['PHP_SELF'], 'plugins', 'uniapp');
                 <i class="fa-solid fa-floppy-disk"></i> Salvar configuracoes
             </button>
         </div>
-    </form>
+    <?php Html::closeForm(); ?>
 </div>
 
 <script>
