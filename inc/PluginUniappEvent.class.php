@@ -28,6 +28,7 @@ class PluginUniappEvent extends CommonDBTM
 
         // Busca token atual (se houver) usando request estruturado
         $existingToken = null;
+        $hasRow = false;
         $it = $DB->request([
             'SELECT' => ['fcm_token'],
             'FROM'   => self::TOKEN_TABLE,
@@ -36,6 +37,7 @@ class PluginUniappEvent extends CommonDBTM
         ]);
         foreach ($it as $row) {
             $existingToken = (string)($row['fcm_token'] ?? '');
+            $hasRow = true;
             break;
         }
 
@@ -45,14 +47,16 @@ class PluginUniappEvent extends CommonDBTM
         // Também atualiza o "updated_at"
         $now = date('Y-m-d H:i:s');
 
-        $DB->update(self::TOKEN_TABLE, [
-            'fcm_token' => $token,
-            'updated_at'=> $now
-        ], [
-            'users_id'  => $userId
-        ]);
-
-        if ((int)$DB->affected_rows() === 0) {
+        if ($hasRow) {
+            if (!$DB->update(self::TOKEN_TABLE, [
+                'fcm_token' => $token,
+                'updated_at'=> $now
+            ], [
+                'users_id' => $userId
+            ])) {
+                return ['success' => false, 'message' => $DB->error()];
+            }
+        } else {
             $ok = $DB->insert(self::TOKEN_TABLE, [
                 'users_id'  => $userId,
                 'fcm_token' => $token,

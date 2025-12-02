@@ -102,13 +102,23 @@ class PluginUniappConfig extends CommonDBTM
                     $value = '';
                 }
 
-                // Tenta UPDATE por par_name; se não afetou linhas, faz INSERT
-                $DB->update(self::CONFIG_TABLE,
-                    ['par_value' => $value],
-                    ['par_name'  => $name]
-                );
+                $exists = false;
+                $check = $DB->request([
+                    'SELECT' => ['id'],
+                    'FROM'   => self::CONFIG_TABLE,
+                    'WHERE'  => ['par_name' => $name],
+                    'LIMIT'  => 1
+                ]);
+                foreach ($check as $row) {
+                    $exists = true;
+                    break;
+                }
 
-                if ((int)$DB->affected_rows() === 0) {
+                if ($exists) {
+                    if (!$DB->update(self::CONFIG_TABLE, ['par_value' => $value], ['par_name' => $name])) {
+                        $errors[] = $DB->error();
+                    }
+                } else {
                     $ok = $DB->insert(self::CONFIG_TABLE, [
                         'par_name'  => $name,
                         'par_value' => $value

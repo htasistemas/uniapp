@@ -139,13 +139,26 @@ try {
     }
 
     foreach ($parameters as $key => $value) {
-        // Tenta UPDATE por par_name; se não afetou, faz INSERT
-        $DB->update($config_table_name,
-            ['par_value' => (string)$value],
-            ['par_name'  => (string)$key]
-        );
+        $exists = false;
+        $check = $DB->request([
+            'SELECT' => ['id'],
+            'FROM'   => $config_table_name,
+            'WHERE'  => ['par_name' => (string)$key],
+            'LIMIT'  => 1
+        ]);
+        foreach ($check as $row) {
+            $exists = true;
+            break;
+        }
 
-        if ((int)$DB->affected_rows() === 0) {
+        if ($exists) {
+            if (!$DB->update($config_table_name,
+                ['par_value' => (string)$value],
+                ['par_name'  => (string)$key]
+            )) {
+                throw new RuntimeException('Falha ao atualizar configuração: ' . $DB->error());
+            }
+        } else {
             $ok = $DB->insert($config_table_name, [
                 'par_name'  => (string)$key,
                 'par_value' => (string)$value
