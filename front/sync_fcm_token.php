@@ -13,33 +13,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // Exige sessão válida (usuário logado)
 Session::checkLoginUser();
 
-// Captura token CSRF: primeiro do header, depois do corpo JSON (fallback)
-$csrfToken = $_SERVER['HTTP_X_GLPI_CSRF_TOKEN'] ?? null;
-
 // Lê o corpo uma única vez para reaproveitar
 $rawBody = file_get_contents('php://input');
 $input = json_decode($rawBody, true);
 if (!is_array($input)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'JSON inválido']);
-    exit;
-}
-
-if (!$csrfToken) {
-    $csrfToken = $input['_glpi_csrf_token'] ?? null;
-}
-
-// Valida CSRF (plugin declara csrf_compliant, então toda ação sensível deve validar)
-if (!$csrfToken) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'CSRF token ausente']);
-    exit;
-}
-try {
-    Session::checkCSRF(['_glpi_csrf_token' => $csrfToken]);
-} catch (Throwable $e) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'CSRF check failed']);
     exit;
 }
 

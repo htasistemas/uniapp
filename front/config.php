@@ -52,7 +52,6 @@ $notificationSections = [
 
 // Processa POST (PRG: Post/Redirect/Get)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
-    Session::checkCSRF($_POST);
 
     $payload = [];
     foreach ($defaultConfig as $field => $defaultValue) {
