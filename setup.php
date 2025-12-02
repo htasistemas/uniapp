@@ -1,9 +1,5 @@
 <?php
 
-// Garante que as classes do plugin sejam carregadas
-require_once __DIR__ . '/inc/PluginUniappEvent.class.php';
-require_once __DIR__ . '/inc/PluginUniappConfig.class.php';
-
 function plugin_init_uniapp()
 {
     global $PLUGIN_HOOKS;
