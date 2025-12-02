@@ -2,49 +2,74 @@
 
 class PluginUniappEvent extends CommonDBTM
 {
-    const TOKEN_TABLE = 'glpi_plugin_uniapp_user_tokens';
+    public const TOKEN_TABLE = 'glpi_plugin_uniapp_user_tokens';
 
     /**
-     * Salva ou atualiza o token FCM e retorna o status da operacao.
+     * Salva ou atualiza o token FCM do usuário.
+     * Retorna array com:
+     *  - success: bool
+     *  - already_synced: bool (true se o token já era igual)
+     *  - message: string opcional em caso de falha
      */
-    public static function saveUserFcmToken(int $userId, string $token)
+    public static function saveUserFcmToken(int $userId, string $token): array
     {
         global $DB;
 
-        $userId = max(0, $userId);
-        $token = trim($token);
+        $userId = max(0, (int)$userId);
+        $token  = trim((string)$token);
 
         if ($userId === 0 || $token === '') {
-            return ['success' => false, 'message' => 'Dados invalidos'];
+            return ['success' => false, 'message' => 'Dados inválidos'];
         }
 
         if (!$DB->tableExists(self::TOKEN_TABLE)) {
-            return ['success' => false, 'message' => 'Tabela de tokens nao encontrada'];
+            return ['success' => false, 'message' => 'Tabela de tokens não encontrada'];
         }
 
-        $escapedToken = $DB->escape($token);
+        // Busca token atual (se houver) usando request estruturado
         $existingToken = null;
-
-        $query = "SELECT fcm_token FROM " . self::TOKEN_TABLE . " WHERE users_id = $userId";
-        foreach ($DB->request($query) as $row) {
-            $existingToken = $row['fcm_token'];
+        $it = $DB->request([
+            'SELECT' => ['fcm_token'],
+            'FROM'   => self::TOKEN_TABLE,
+            'WHERE'  => ['users_id' => $userId],
+            'LIMIT'  => 1
+        ]);
+        foreach ($it as $row) {
+            $existingToken = (string)($row['fcm_token'] ?? '');
             break;
         }
 
         $alreadySynced = ($existingToken !== null && $existingToken === $token);
 
-        $query = "INSERT INTO " . self::TOKEN_TABLE . " (users_id, fcm_token)
-                    VALUES ($userId, '$escapedToken')
-                    ON DUPLICATE KEY UPDATE fcm_token = '$escapedToken', updated_at = CURRENT_TIMESTAMP";
+        // UPSERT seguro: tenta UPDATE; se não afetar linhas, faz INSERT
+        // Também atualiza o "updated_at"
+        $now = date('Y-m-d H:i:s');
 
-        $DB->queryOrDie($query, $DB->error());
+        $DB->update(self::TOKEN_TABLE, [
+            'fcm_token' => $token,
+            'updated_at'=> $now
+        ], [
+            'users_id'  => $userId
+        ]);
+
+        if ((int)$DB->affected_rows() === 0) {
+            $ok = $DB->insert(self::TOKEN_TABLE, [
+                'users_id'  => $userId,
+                'fcm_token' => $token,
+                'updated_at'=> $now
+            ]);
+            if (!$ok) {
+                return ['success' => false, 'message' => $DB->error()];
+            }
+        }
 
         return [
-            'success' => true,
+            'success'        => true,
             'already_synced' => $alreadySynced
         ];
     }
 
+    // Hooks criados para futura lógica de notificação (mantidos como no original)
     public static function item_add_ticket(Ticket $ticket)
     {
         return true;
