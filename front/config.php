@@ -23,6 +23,18 @@ $defaultConfig = [
     'public_colors_rps'  => '300',
     'public_colors_version' => '0',
     'public_colors_updated_at' => '',
+    'app_project_id'     => '',
+    'placeholder_image_pattern' => 'https://img.icons8.com/ios-filled/128/%COLOR%/user.png',
+    'historical_order_storage' => 'historical_order_',
+    'app_max_tickets'    => '500',
+    'app_max_tickets_old'=> '10',
+    'app_max_files'      => '5',
+    'app_max_file_size_mb'=> '2',
+    'app_grid_space'     => '5',
+    'app_text_scale'     => '1',
+    'app_icon_scale'     => '1',
+    'app_max_image_height'=> '400',
+    'app_max_image_width'=> '300',
 
     // cores compartilhadas com o aplicativo
     'color_header'       => '#1A3557',
@@ -386,6 +398,119 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
                     <input type="number" id="public_colors_rps" name="public_colors_rps" min="1"
                            value="<?php echo htmlspecialchars($configValues['public_colors_rps'] ?? '300'); ?>">
                     <span class="help-text">Defina quantas chamadas por segundo a API pública de cores deve permitir antes de começar a recusar.</span>
+                </div>
+            </div>
+
+            <div class="section-heading">Configurações do app</div>
+            <div class="section-description">
+                Ajuste o comportamento do aplicativo móvel sem precisar recompilar o binário.
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_project_id">Project ID padrão</label></div>
+                <div class="input-col">
+                    <input type="text" id="app_project_id" name="app_project_id"
+                           value="<?php echo htmlspecialchars($configValues['app_project_id'] ?? ''); ?>">
+                    <span class="help-text">Fallback quando DeviceInfo não expor o bundle ID.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="placeholder_image_pattern">Placeholder de perfil</label></div>
+                <div class="input-col">
+                    <input type="text" id="placeholder_image_pattern" name="placeholder_image_pattern"
+                           value="<?php echo htmlspecialchars($configValues['placeholder_image_pattern'] ?? ''); ?>">
+                    <span class="help-text">Use '%COLOR%' para injetar o hexadecimal sem '#' (ex.: https://.../%COLOR%/user.png).</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="historical_order_storage">Chave de históricos</label></div>
+                <div class="input-col">
+                    <input type="text" id="historical_order_storage" name="historical_order_storage"
+                           value="<?php echo htmlspecialchars($configValues['historical_order_storage'] ?? 'historical_order_'); ?>">
+                    <span class="help-text">Prefixo para armazenar a ordenação de históricos no app.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_max_tickets">Máximo de tickets recentes</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_max_tickets" name="app_max_tickets" min="1"
+                           value="<?php echo htmlspecialchars($configValues['app_max_tickets'] ?? '500'); ?>">
+                    <span class="help-text">Quantidade máxima de tickets abertos exibidos.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_max_tickets_old">Máximo de tickets antigos</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_max_tickets_old" name="app_max_tickets_old" min="0"
+                           value="<?php echo htmlspecialchars($configValues['app_max_tickets_old'] ?? '10'); ?>">
+                    <span class="help-text">Quantidade máxima de tickets em estado antigo.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_max_files">Máximo de anexos</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_max_files" name="app_max_files" min="1"
+                           value="<?php echo htmlspecialchars($configValues['app_max_files'] ?? '5'); ?>">
+                    <span class="help-text">Número máximo de arquivos permitidos por envio.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_max_file_size_mb">Tamanho máximo de arquivo (MB)</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_max_file_size_mb" name="app_max_file_size_mb" min="1"
+                           value="<?php echo htmlspecialchars($configValues['app_max_file_size_mb'] ?? '2'); ?>">
+                    <span class="help-text">Tamanho máximo em megabytes por anexo.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_grid_space">Espaçamento da grade</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_grid_space" name="app_grid_space" min="0"
+                           value="<?php echo htmlspecialchars($configValues['app_grid_space'] ?? '5'); ?>">
+                    <span class="help-text">Espaço (px) usado para espaçar elementos em listas no app.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_text_scale">Escala de texto</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_text_scale" name="app_text_scale" min="0.1" step="0.1"
+                           value="<?php echo htmlspecialchars($configValues['app_text_scale'] ?? '1'); ?>">
+                    <span class="help-text">Multiplicador aplicado aos textos (1.0 = 100%).</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_icon_scale">Escala de ícones</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_icon_scale" name="app_icon_scale" min="0.1" step="0.1"
+                           value="<?php echo htmlspecialchars($configValues['app_icon_scale'] ?? '1'); ?>">
+                    <span class="help-text">Multiplicador aplicado aos ícones (1.0 = 100%).</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_max_image_height">Altura máxima de imagem</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_max_image_height" name="app_max_image_height" min="0"
+                           value="<?php echo htmlspecialchars($configValues['app_max_image_height'] ?? '400'); ?>">
+                    <span class="help-text">Altura máxima desejada (px) para miniaturas.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_max_image_width">Largura máxima de imagem</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_max_image_width" name="app_max_image_width" min="0"
+                           value="<?php echo htmlspecialchars($configValues['app_max_image_width'] ?? '300'); ?>">
+                    <span class="help-text">Largura máxima desejada (px) para miniaturas.</span>
                 </div>
             </div>
 

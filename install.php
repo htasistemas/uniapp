@@ -84,7 +84,19 @@ $parameters = [
     "log_file"              => "",
     "public_colors_rps"     => "300",
     "public_colors_version" => "0",
-    "public_colors_updated_at" => ""
+    "public_colors_updated_at" => "",
+    "app_project_id"        => "",
+    "placeholder_image_pattern" => "https://img.icons8.com/ios-filled/128/%COLOR%/user.png",
+    "historical_order_storage" => "historical_order_",
+    "app_max_tickets"       => "500",
+    "app_max_tickets_old"   => "10",
+    "app_max_files"         => "5",
+    "app_max_file_size_mb"  => "2",
+    "app_grid_space"        => "5",
+    "app_text_scale"        => "1",
+    "app_icon_scale"        => "1",
+    "app_max_image_height"  => "400",
+    "app_max_image_width"   => "300"
 ];
 
 // Leitura opcional de uniapp.cfg (compatibilidade)
