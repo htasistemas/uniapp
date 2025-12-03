@@ -20,6 +20,7 @@ $defaultConfig = [
     'fcm_client_email'   => '',
     'fcm_private_key'    => '',
     'enable_attachments' => '0',
+    'public_colors_rps'  => '300',
 
     // cores compartilhadas com o aplicativo
     'color_header'       => '#1A3557',
@@ -90,6 +91,8 @@ $notificationSections = [
     'validation'=> 'Aprovação'
 ];
 
+$colorFields = array_keys(PluginUniappConfig::getDefaultColors());
+
 // Processa POST (PRG: Post/Redirect/Get)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
 
@@ -99,11 +102,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
             $payload[$field] = isset($_POST[$field]) ? '1' : '0';
             continue;
         }
+        if ($field === 'public_colors_rps') {
+            $rateLimit = max(1, (int)($_POST[$field] ?? $defaultValue));
+            $payload[$field] = (string)$rateLimit;
+            continue;
+        }
         $value = $_POST[$field] ?? '';
         if ($field !== 'fcm_private_key') {
             $value = trim((string)$value);
         }
         $payload[$field] = $value;
+    }
+
+    $palette = [];
+    $colorsDirty = false;
+    foreach ($colorFields as $colorField) {
+        $newColor = $payload[$colorField] ?? '';
+        $palette[$colorField] = $newColor;
+        if (!$colorsDirty && ($newColor !== ($configValues[$colorField] ?? ''))) {
+            $colorsDirty = true;
+        }
+    }
+
+    if ($colorsDirty) {
+        $now = time();
+        $payload['public_colors_updated_at'] = (string)$now;
+        $payload['public_colors_version'] = sha1(json_encode($palette, JSON_UNESCAPED_SLASHES));
     }
 
     $errors = PluginUniappConfig::save($payload);
@@ -351,6 +375,15 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
                         <span class="slider"></span>
                     </label>
                     <span style="color:#666;">Permite o app anexar arquivos nos tickets.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="public_colors_rps">Limite de consultas por segundo</label></div>
+                <div class="input-col">
+                    <input type="number" id="public_colors_rps" name="public_colors_rps" min="1"
+                           value="<?php echo htmlspecialchars($configValues['public_colors_rps'] ?? '300'); ?>">
+                    <span class="help-text">Defina quantas chamadas por segundo a API pública de cores deve permitir antes de começar a recusar.</span>
                 </div>
             </div>
 
