@@ -19,6 +19,8 @@ $defaultConfig = [
     'fcm_project_id'     => '',
     'fcm_client_email'   => '',
     'fcm_private_key'    => '',
+    'fcm_super_admin_user' => '',
+    'fcm_super_admin_password' => '',
     'enable_attachments' => '0',
     'public_colors_rps'  => '300',
     'public_colors_version' => '0',
@@ -35,6 +37,11 @@ $defaultConfig = [
     'app_icon_scale'     => '1',
     'app_max_image_height'=> '400',
     'app_max_image_width'=> '300',
+    'app_logo_png'       => '',
+    'app_splash_png'     => '',
+    'app_icon_png'       => '',
+    'app_favicon_png'    => '',
+    'app_adaptive_icon_png' => '',
 
     // cores compartilhadas com o aplicativo
     'color_header'       => '#1A3557',
@@ -105,6 +112,16 @@ $notificationSections = [
     'validation'=> 'Aprovação'
 ];
 
+$logoFields = [
+    'app_logo_png'          => 'Logo do aplicativo (PNG)',
+    'app_splash_png'        => 'Splash (PNG)',
+    'app_icon_png'          => 'Ícone do app (PNG)',
+    'app_favicon_png'       => 'Favicon (PNG)',
+    'app_adaptive_icon_png' => 'Adaptive icon (PNG)'
+];
+
+$logoFieldKeys = array_keys($logoFields);
+
 $colorFields = array_keys(PluginUniappConfig::getDefaultColors());
 
 // Processa POST (PRG: Post/Redirect/Get)
@@ -112,6 +129,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
 
     $payload = [];
     foreach ($defaultConfig as $field => $defaultValue) {
+        if (in_array($field, $logoFieldKeys, true)) {
+            continue;
+        }
         if ($field === 'enable_attachments' || $field === 'write_log') {
             $payload[$field] = isset($_POST[$field]) ? '1' : '0';
             continue;
@@ -144,7 +164,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
         $payload['public_colors_updated_at'] = gmdate('c');
     }
 
-    $errors = PluginUniappConfig::save($payload);
+    foreach ($logoFieldKeys as $logoField) {
+        if (empty($_FILES[$logoField]) || $_FILES[$logoField]['error'] === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+
+        $upload = $_FILES[$logoField];
+        if ($upload['error'] !== UPLOAD_ERR_OK) {
+            $errors[] = sprintf(__('%s: falha no upload (código %d).', 'uniapp'), $logoFields[$logoField], $upload['error']);
+            continue;
+        }
+
+        $tmpName = (string)$upload['tmp_name'];
+        if (!is_uploaded_file($tmpName)) {
+            continue;
+        }
+
+        $mime = '';
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo) {
+                $mime = finfo_file($finfo, $tmpName);
+                finfo_close($finfo);
+            }
+        }
+        if ($mime === '' && function_exists('mime_content_type')) {
+            $mime = mime_content_type($tmpName);
+        }
+        $mime = strtolower((string)$mime);
+        if (strpos($mime, 'image/png') !== 0) {
+            $errors[] = sprintf(__('%s: envie apenas PNG.', 'uniapp'), $logoFields[$logoField]);
+            continue;
+        }
+
+        $content = file_get_contents($tmpName);
+        if ($content === false) {
+            $errors[] = sprintf(__('%s: arquivo inválido.', 'uniapp'), $logoFields[$logoField]);
+            continue;
+        }
+
+        $payload[$logoField] = base64_encode($content);
+    }
+
+    if (empty($errors)) {
+        $errors = PluginUniappConfig::save($payload);
+    }
 
     if (empty($errors)) {
         Session::addMessageAfterRedirect(__('Configuração salva com sucesso', 'uniapp'), true, INFO);
@@ -216,6 +280,25 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
     }
     .tab-pane { display: none; }
     .tab-pane.active { display: block; }
+    .notification-subtabs { display: flex; gap: 10px; margin: 0 20px 15px; }
+    .subtab-button {
+        border: 1px solid #dcdcdc;
+        border-bottom: none;
+        background: #fff;
+        padding: 6px 16px;
+        cursor: pointer;
+        font-weight: 600;
+        border-radius: 4px 4px 0 0;
+        color: #4a4a4a;
+        transition: background .2s, border-color .2s;
+    }
+    .subtab-button.active {
+        color: var(--glpi-blue);
+        border-color: var(--glpi-blue);
+        background: #f1f5ff;
+    }
+    .subtab-pane { display: none; }
+    .subtab-pane.active { display: block; }
     .colors-group { margin-bottom: 25px; }
     .colors-group .section-heading { margin: 0 0 10px; font-size: 15px; }
     .colors-section { background-color: #f9f9f9; border: 1px solid #eee; padding: 15px; border-radius: 4px; width: 100%; max-width: 900px; }
@@ -238,6 +321,16 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
         .color-row { flex-direction: column; align-items: flex-start; }
         .color-row label { width: 100%; margin-bottom: 6px; }
         .color-picker-wrapper { width: 100%; }
+    }
+    .logo-preview { margin-bottom: 10px; }
+    .logo-preview img {
+        max-width: 120px;
+        max-height: 120px;
+        border: 1px solid #e0e0e0;
+        border-radius: 3px;
+        object-fit: contain;
+        background: #fff;
+        padding: 4px;
     }
     .uniapp-message { margin: 20px; padding: 10px; border-radius: 3px; font-size: 13px; }
     .uniapp-message.success { background-color: #dff0d8; border: 1px solid #b2dba1; color: #2f6627; }
@@ -314,13 +407,15 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
     }
     ?>
 
-    <form method="post" action="<?php echo htmlspecialchars($SELFURL); ?>" class="uniapp-form">
+    <form method="post" action="<?php echo htmlspecialchars($SELFURL); ?>" class="uniapp-form" enctype="multipart/form-data">
         <input type="hidden" name="_glpi_csrf_token" value="<?php echo Session::getNewCSRFToken(); ?>">
         <input type="hidden" name="PluginUniappConfig" value="1">
 
         <div class="config-tabs">
             <button type="button" class="tab-button active" data-tab="tab-cores">Cores</button>
+            <button type="button" class="tab-button" data-tab="tab-notificacoes">Notificações</button>
             <button type="button" class="tab-button" data-tab="tab-parametros">Parâmetros gerais</button>
+            <button type="button" class="tab-button" data-tab="tab-logos">Logos</button>
         </div>
 
         <div class="tab-pane active" id="tab-cores">
@@ -348,36 +443,120 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
             <?php endforeach; ?>
         </div>
 
+        <div class="tab-pane" id="tab-notificacoes">
+            <div class="section-description">
+                Gerencie os dados de envio do Firebase e altere os textos exibidos ao usuário final.
+            </div>
+            <div class="notification-subtabs">
+                <button type="button" class="subtab-button active" data-subtab="notifications-servidor">Servidor</button>
+                <button type="button" class="subtab-button" data-subtab="notifications-mensagens">Mensagens</button>
+            </div>
+            <div class="subtab-pane active" id="notifications-servidor">
+                <div class="section-heading">Servidor FCM</div>
+                <div class="section-description">
+                    Informe o projeto e a conta de serviço usados para enviar notificações via Firebase.
+                </div>
+                <div class="form-group">
+                    <div class="label-col"><label for="fcm_project_id">Projeto FCM</label></div>
+                    <div class="input-col">
+                        <input type="text" id="fcm_project_id" name="fcm_project_id"
+                               value="<?php echo htmlspecialchars($configValues['fcm_project_id'] ?? ''); ?>"
+                               placeholder="Informe o ID do projeto Firebase">
+                        <span class="help-text">ID registrado no Firebase para envio de notificações via FCM.</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="label-col"><label for="fcm_client_email">Client Email</label></div>
+                    <div class="input-col">
+                        <input type="text" id="fcm_client_email" name="fcm_client_email"
+                               value="<?php echo htmlspecialchars($configValues['fcm_client_email'] ?? ''); ?>"
+                               placeholder="E-mail do service account no Firebase">
+                        <span class="help-text">E-mail vinculado ao service account do FCM.</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="label-col"><label for="fcm_private_key">Private Key</label></div>
+                    <div class="input-col">
+                        <textarea id="fcm_private_key" name="fcm_private_key"
+                                  placeholder="Cole a chave privada JSON do Firebase"><?php
+                            echo htmlspecialchars($configValues['fcm_private_key'] ?? '');
+                        ?></textarea>
+                        <span class="help-text">Chave privada usada para autenticar com o Firebase Admin.</span>
+                    </div>
+                </div>
+
+                <div class="section-heading">Usuário Super-Admin</div>
+                <div class="section-description">
+                    Usuário utilizado para realizar as alterações de FCM token dos usuários no banco.
+                </div>
+                <div class="form-group">
+                    <div class="label-col"><label for="fcm_super_admin_user">Usuário</label></div>
+                    <div class="input-col">
+                        <input type="password" id="fcm_super_admin_user" name="fcm_super_admin_user"
+                               value="<?php echo htmlspecialchars($configValues['fcm_super_admin_user'] ?? ''); ?>"
+                               autocomplete="username">
+                        <span class="help-text">Login do super-admin que aplica as atualizações de token.</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="label-col"><label for="fcm_super_admin_password">Senha</label></div>
+                    <div class="input-col">
+                        <input type="password" id="fcm_super_admin_password" name="fcm_super_admin_password"
+                               value="<?php echo htmlspecialchars($configValues['fcm_super_admin_password'] ?? ''); ?>"
+                               autocomplete="current-password">
+                        <span class="help-text">Senha do super-admin usada nas operações sensíveis.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="subtab-pane" id="notifications-mensagens">
+                <div class="section-heading">Mensagens de notificação</div>
+                <div class="section-description">
+                    Defina os títulos, as mensagens e os tipos de usuário que devem receber cada notificação.
+                </div>
+
+                <?php foreach ($notificationSections as $key => $label): ?>
+                    <div class="form-group">
+                        <div class="label-col">
+                            <label for="<?php echo $key; ?>_title"><?php echo $label; ?> — Título</label>
+                        </div>
+                        <div class="input-col">
+                            <input type="text" id="<?php echo $key; ?>_title" name="<?php echo $key; ?>_title"
+                                   value="<?php echo htmlspecialchars($configValues[$key . '_title'] ?? ''); ?>">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-col">
+                            <label for="<?php echo $key; ?>_message"><?php echo $label; ?> — Mensagem</label>
+                        </div>
+                        <div class="input-col">
+                            <textarea id="<?php echo $key; ?>_message" name="<?php echo $key; ?>_message"
+                                      placeholder="Mensagem exibida no aplicativo"><?php echo htmlspecialchars($configValues[$key . '_message'] ?? ''); ?></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-col">
+                            <label for="<?php echo $key; ?>_user_types"><?php echo $label; ?> — Tipos de usuário</label>
+                        </div>
+                        <div class="input-col">
+                            <input type="text" id="<?php echo $key; ?>_user_types" name="<?php echo $key; ?>_user_types"
+                                   value="<?php echo htmlspecialchars($configValues[$key . '_user_types'] ?? ''); ?>"
+                                   placeholder="Ex: 1,3,412">
+                            <span class="help-text">Informe os tipos de usuário (IDs separados por vírgula) conforme a tabela de direitos do GLPI.</span>
+                        </div>
+                    </div>
+            <?php endforeach; ?>
+            </div>
+        </div>
+
         <div class="tab-pane" id="tab-parametros">
-            <div class="form-group">
-                <div class="label-col"><label for="fcm_project_id">Projeto FCM</label></div>
-                <div class="input-col">
-                    <input type="text" id="fcm_project_id" name="fcm_project_id"
-                           value="<?php echo htmlspecialchars($configValues['fcm_project_id'] ?? ''); ?>"
-                           placeholder="Informe o ID do projeto Firebase">
-                    <span class="help-text">ID registrado no Firebase para envio de notificações via FCM.</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="fcm_client_email">Client Email</label></div>
-                <div class="input-col">
-                    <input type="text" id="fcm_client_email" name="fcm_client_email"
-                           value="<?php echo htmlspecialchars($configValues['fcm_client_email'] ?? ''); ?>"
-                           placeholder="E-mail do service account no Firebase">
-                    <span class="help-text">E-mail vinculado ao service account do FCM.</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="fcm_private_key">Private Key</label></div>
-                <div class="input-col">
-                    <textarea id="fcm_private_key" name="fcm_private_key"
-                              placeholder="Cole a chave privada JSON do Firebase"><?php
-                        echo htmlspecialchars($configValues['fcm_private_key'] ?? '');
-                    ?></textarea>
-                    <span class="help-text">Chave privada usada para autenticar com o Firebase Admin.</span>
-                </div>
+            <div class="section-description">
+                Ajuste limites globais e parâmetros que afetam todo o aplicativo.
             </div>
 
             <div class="form-group">
@@ -514,45 +693,6 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
                 </div>
             </div>
 
-            <div class="section-heading">Mensagens de notificação</div>
-            <div class="section-description">
-                Defina os títulos, as mensagens e os tipos de usuário que devem receber cada notificação.
-            </div>
-
-            <?php foreach ($notificationSections as $key => $label): ?>
-                <div class="form-group">
-                    <div class="label-col">
-                        <label for="<?php echo $key; ?>_title"><?php echo $label; ?> — Título</label>
-                    </div>
-                    <div class="input-col">
-                        <input type="text" id="<?php echo $key; ?>_title" name="<?php echo $key; ?>_title"
-                               value="<?php echo htmlspecialchars($configValues[$key . '_title'] ?? ''); ?>">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <div class="label-col">
-                        <label for="<?php echo $key; ?>_message"><?php echo $label; ?> — Mensagem</label>
-                    </div>
-                    <div class="input-col">
-                        <textarea id="<?php echo $key; ?>_message" name="<?php echo $key; ?>_message"
-                                  placeholder="Mensagem exibida no aplicativo"><?php echo htmlspecialchars($configValues[$key . '_message'] ?? ''); ?></textarea>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <div class="label-col">
-                        <label for="<?php echo $key; ?>_user_types"><?php echo $label; ?> — Tipos de usuário</label>
-                    </div>
-                    <div class="input-col">
-                        <input type="text" id="<?php echo $key; ?>_user_types" name="<?php echo $key; ?>_user_types"
-                               value="<?php echo htmlspecialchars($configValues[$key . '_user_types'] ?? ''); ?>"
-                               placeholder="Ex: 1,3,412">
-                        <span class="help-text">Informe os tipos de usuário (IDs separados por vírgula) conforme a tabela de direitos do GLPI.</span>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-
             <div class="section-heading">Logs e auditoria</div>
             <div class="section-description">
                 Ative o registro em arquivo caso queira acompanhar as operações do plugin.
@@ -581,6 +721,30 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
             </div>
         </div>
 
+        <div class="tab-pane" id="tab-logos">
+            <div class="section-heading">Logos e ícones</div>
+            <div class="section-description">
+                No primeiro grupo estão as imagens usadas dentro do aplicativo; envie PNGs para hospedar essas artes.
+            </div>
+            <?php foreach ($logoFields as $field => $label): ?>
+                <div class="form-group">
+                    <div class="label-col">
+                        <label for="<?php echo $field; ?>"><?php echo $label; ?></label>
+                    </div>
+                    <div class="input-col">
+                        <?php if (!empty($configValues[$field])): ?>
+                            <div class="logo-preview">
+                                <img src="data:image/png;base64,<?php echo htmlspecialchars($configValues[$field]); ?>"
+                                     alt="<?php echo htmlspecialchars($label); ?>">
+                            </div>
+                        <?php endif; ?>
+                        <input type="file" id="<?php echo $field; ?>" name="<?php echo $field; ?>" accept="image/png">
+                        <span class="help-text">Envie um PNG válido; ele será hospedado para uso no app.</span>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
         <div class="form-actions">
             <button type="submit" class="btn-save" name="save_config">
                 <i class="fa-solid fa-floppy-disk"></i> Salvar configurações
@@ -602,6 +766,19 @@ document.addEventListener('DOMContentLoaded', () => {
             panes.forEach(pane => pane.classList.toggle('active', pane.id === targetId));
         });
     });
+
+    const notificationTab = document.getElementById('tab-notificacoes');
+    if (notificationTab) {
+        const subButtons = notificationTab.querySelectorAll('.subtab-button');
+        const subPanes = notificationTab.querySelectorAll('.subtab-pane');
+        subButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const targetId = button.dataset.subtab;
+                subButtons.forEach(btn => btn.classList.toggle('active', btn === button));
+                subPanes.forEach(pane => pane.classList.toggle('active', pane.id === targetId));
+            });
+        });
+    }
 
     const colorFields = <?php echo json_encode($flatColorFields, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 

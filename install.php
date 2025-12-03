@@ -29,6 +29,8 @@ $parameters = [
     "fcm_project_id"        => "",
     "fcm_client_email"      => "",
     "fcm_private_key"       => "",
+    "fcm_super_admin_user"  => "",
+    "fcm_super_admin_password" => "",
     "ticket_title"          => "",
     "ticket_message"        => "",
     "ticket_user_types"     => "",
@@ -96,7 +98,12 @@ $parameters = [
     "app_text_scale"        => "1",
     "app_icon_scale"        => "1",
     "app_max_image_height"  => "400",
-    "app_max_image_width"   => "300"
+    "app_max_image_width"   => "300",
+    "app_logo_png"          => "",
+    "app_splash_png"        => "",
+    "app_icon_png"          => "",
+    "app_favicon_png"       => "",
+    "app_adaptive_icon_png" => ""
 ];
 
 // Leitura opcional de uniapp.cfg (compatibilidade)
