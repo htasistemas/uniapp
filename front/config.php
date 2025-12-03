@@ -21,6 +21,8 @@ $defaultConfig = [
     'fcm_private_key'    => '',
     'enable_attachments' => '0',
     'public_colors_rps'  => '300',
+    'public_colors_version' => '0',
+    'public_colors_updated_at' => '',
 
     // cores compartilhadas com o aplicativo
     'color_header'       => '#1A3557',
@@ -125,9 +127,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
     }
 
     if ($colorsDirty) {
-        $now = time();
-        $payload['public_colors_updated_at'] = (string)$now;
-        $payload['public_colors_version'] = sha1(json_encode($palette, JSON_UNESCAPED_SLASHES));
+        $currentVersion = max(0, (int)($configValues['public_colors_version'] ?? 0));
+        $payload['public_colors_version'] = (string)($currentVersion + 1);
+        $payload['public_colors_updated_at'] = gmdate('c');
     }
 
     $errors = PluginUniappConfig::save($payload);

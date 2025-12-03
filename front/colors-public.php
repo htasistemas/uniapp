@@ -32,7 +32,7 @@ foreach ($defaultColors as $key => $default) {
 }
 
 $version = PluginUniappConfig::get('public_colors_version', '0');
-$updatedAt = (int)PluginUniappConfig::get('public_colors_updated_at', '0');
+$updatedAt = PluginUniappConfig::get('public_colors_updated_at', '');
 
 echo json_encode([
     'success'    => true,

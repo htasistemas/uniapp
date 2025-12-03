@@ -17,11 +17,6 @@
 
 global $DB;
 
-require_once __DIR__ . '/inc/PluginUniappConfig.class.php';
-$defaultColorPalette = PluginUniappConfig::getDefaultColors();
-$defaultColorsHash = sha1(json_encode($defaultColorPalette, JSON_UNESCAPED_SLASHES));
-$defaultColorUpdated = (string)time();
-
 $plugin_name        = 'uniapp';
 $config_table_name  = "glpi_plugin_{$plugin_name}_config";
 $token_table_name   = "glpi_plugin_{$plugin_name}_user_tokens";
@@ -88,8 +83,8 @@ $parameters = [
     "write_log"             => "0",
     "log_file"              => "",
     "public_colors_rps"     => "300",
-    "public_colors_version" => $defaultColorsHash,
-    "public_colors_updated_at" => $defaultColorUpdated
+    "public_colors_version" => "0",
+    "public_colors_updated_at" => ""
 ];
 
 // Leitura opcional de uniapp.cfg (compatibilidade)
