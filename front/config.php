@@ -25,9 +25,6 @@ $defaultConfig = [
     'public_colors_rps'  => '300',
     'public_colors_version' => '0',
     'public_colors_updated_at' => '',
-    'app_project_id'     => '',
-    'placeholder_image_pattern' => 'https://img.icons8.com/ios-filled/128/%COLOR%/user.png',
-    'historical_order_storage' => 'historical_order_',
     'app_max_tickets'    => '500',
     'app_max_tickets_old'=> '10',
     'app_max_files'      => '5',
@@ -422,6 +419,14 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
             <div class="section-description">
                 Escolha as cores que o aplicativo deve expor nos diferentes contextos antes de salvar.
             </div>
+            <div class="form-group">
+                <div class="label-col"><label for="public_colors_rps">Limite de consultas por segundo</label></div>
+                <div class="input-col">
+                    <input type="number" id="public_colors_rps" name="public_colors_rps" min="1"
+                           value="<?php echo htmlspecialchars($configValues['public_colors_rps'] ?? '300'); ?>">
+                    <span class="help-text">Defina quantas chamadas por segundo a API pública de cores deve permitir antes de começar a recusar.</span>
+                </div>
+            </div>
             <?php foreach ($colorGroups as $groupLabel => $fields): ?>
                 <div class="colors-group">
                     <div class="section-heading"><?php echo $groupLabel; ?></div>
@@ -555,8 +560,9 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
         </div>
 
         <div class="tab-pane" id="tab-parametros">
+            <div class="section-heading">Configurações do app</div>
             <div class="section-description">
-                Ajuste limites globais e parâmetros que afetam todo o aplicativo.
+                Ajuste o comportamento do aplicativo móvel sem precisar recompilar o binário; todos os valores abaixo são expostos em <code>front/parametros-gerais.php</code>.
             </div>
 
             <div class="form-group">
@@ -568,47 +574,6 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
                         <span class="slider"></span>
                     </label>
                     <span style="color:#666;">Permite o app anexar arquivos nos tickets.</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="public_colors_rps">Limite de consultas por segundo</label></div>
-                <div class="input-col">
-                    <input type="number" id="public_colors_rps" name="public_colors_rps" min="1"
-                           value="<?php echo htmlspecialchars($configValues['public_colors_rps'] ?? '300'); ?>">
-                    <span class="help-text">Defina quantas chamadas por segundo a API pública de cores deve permitir antes de começar a recusar.</span>
-                </div>
-            </div>
-
-            <div class="section-heading">Configurações do app</div>
-            <div class="section-description">
-                Ajuste o comportamento do aplicativo móvel sem precisar recompilar o binário.
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="app_project_id">Project ID padrão</label></div>
-                <div class="input-col">
-                    <input type="text" id="app_project_id" name="app_project_id"
-                           value="<?php echo htmlspecialchars($configValues['app_project_id'] ?? ''); ?>">
-                    <span class="help-text">Fallback quando DeviceInfo não expor o bundle ID.</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="placeholder_image_pattern">Placeholder de perfil</label></div>
-                <div class="input-col">
-                    <input type="text" id="placeholder_image_pattern" name="placeholder_image_pattern"
-                           value="<?php echo htmlspecialchars($configValues['placeholder_image_pattern'] ?? ''); ?>">
-                    <span class="help-text">Use '%COLOR%' para injetar o hexadecimal sem '#' (ex.: https://.../%COLOR%/user.png).</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="historical_order_storage">Chave de históricos</label></div>
-                <div class="input-col">
-                    <input type="text" id="historical_order_storage" name="historical_order_storage"
-                           value="<?php echo htmlspecialchars($configValues['historical_order_storage'] ?? 'historical_order_'); ?>">
-                    <span class="help-text">Prefixo para armazenar a ordenação de históricos no app.</span>
                 </div>
             </div>
 

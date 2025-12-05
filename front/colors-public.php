@@ -33,27 +33,12 @@ foreach ($defaultColors as $key => $default) {
 
 $version = PluginUniappConfig::get('public_colors_version', '0');
 $updatedAt = PluginUniappConfig::get('public_colors_updated_at', '');
-$appSettings = [
-    'project_id'                => PluginUniappConfig::get('app_project_id', ''),
-    'placeholder_image_pattern' => PluginUniappConfig::get('placeholder_image_pattern', 'https://img.icons8.com/ios-filled/128/%COLOR%/user.png'),
-    'historical_order_storage'  => PluginUniappConfig::get('historical_order_storage', 'historical_order_'),
-    'max_tickets'               => (int)PluginUniappConfig::get('app_max_tickets', '500'),
-    'max_tickets_old'           => (int)PluginUniappConfig::get('app_max_tickets_old', '10'),
-    'max_files'                 => (int)PluginUniappConfig::get('app_max_files', '5'),
-    'max_file_size_mb'          => (int)PluginUniappConfig::get('app_max_file_size_mb', '2'),
-    'grid_space'                => (int)PluginUniappConfig::get('app_grid_space', '5'),
-    'text_scale'                => (float)PluginUniappConfig::get('app_text_scale', '1'),
-    'icon_scale'                => (float)PluginUniappConfig::get('app_icon_scale', '1'),
-    'max_image_height'          => (int)PluginUniappConfig::get('app_max_image_height', '400'),
-    'max_image_width'           => (int)PluginUniappConfig::get('app_max_image_width', '300'),
-];
-
 echo json_encode([
     'success'    => true,
     'version'    => $version,
     'updated_at' => $updatedAt,
     'rate_limit' => $limit,
-    'settings'   => $appSettings,
+    'settings'   => ['rate_limit' => $limit],
     'colors'     => $colors
 ], JSON_UNESCAPED_SLASHES);
 
