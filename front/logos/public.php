@@ -32,8 +32,7 @@ if ($resource === '' || !array_key_exists($resource, $allowedResources)) {
     respond(['success' => false, 'error' => 'Recurso nao encontrado'], 404);
 }
 
-$configValues = PluginUniappConfig::getAll();
-$image = $configValues[$allowedResources[$resource]] ?? '';
+$image = PluginUniappConfig::getLogoBase64($allowedResources[$resource]);
 
 $version = PluginUniappConfig::get('public_logos_version', '0');
 $updatedAt = PluginUniappConfig::get('public_logos_updated_at', '');

@@ -115,6 +115,11 @@ $logoFields = [
 
 $logoFieldKeys = array_keys($logoFields);
 
+$logoPreviewData = [];
+foreach ($logoFields as $field => $_label) {
+    $logoPreviewData[$field] = PluginUniappConfig::getLogoBase64($field);
+}
+
 $colorFields = array_keys(PluginUniappConfig::getDefaultColors());
 
 // Processa POST (PRG: Post/Redirect/Get)
@@ -191,13 +196,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
             continue;
         }
 
-        $content = file_get_contents($tmpName);
-        if ($content === false) {
-            $errors[] = sprintf(__('%s: arquivo inválido.', 'uniapp'), $logoFields[$logoField]);
+        $storageName = PluginUniappConfig::getLogoStorageFilename($logoField);
+        if ($storageName === null) {
             continue;
         }
 
-        $payload[$logoField] = base64_encode($content);
+        if (!PluginUniappConfig::ensureLogosDirectory()) {
+            $errors[] = sprintf(__('%s: falha ao preparar o diretório de logos.', 'uniapp'), $logoFields[$logoField]);
+            continue;
+        }
+
+        $targetPath = PluginUniappConfig::getLogosDirectory() . '/' . $storageName;
+        if (!move_uploaded_file($tmpName, $targetPath)) {
+            $errors[] = sprintf(__('%s: falha ao mover o arquivo enviado.', 'uniapp'), $logoFields[$logoField]);
+            continue;
+        }
+        @chmod($targetPath, 0644);
+
+        $payload[$logoField] = $storageName;
         $logosDirty = true;
     }
 
@@ -710,9 +726,10 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
                         <label for="<?php echo $field; ?>"><?php echo $label; ?></label>
                     </div>
                     <div class="input-col">
-                        <?php if (!empty($configValues[$field])): ?>
+                        <?php $previewData = $logoPreviewData[$field] ?? ''; ?>
+                        <?php if ($previewData !== ''): ?>
                             <div class="logo-preview">
-                                <img src="data:image/png;base64,<?php echo htmlspecialchars($configValues[$field]); ?>"
+                                <img src="data:image/png;base64,<?php echo htmlspecialchars($previewData); ?>"
                                      alt="<?php echo htmlspecialchars($label); ?>">
                             </div>
                         <?php endif; ?>
@@ -725,16 +742,16 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
                 <div class="section-heading">Pré-visualização</div>
                 <div class="logos-preview-grid">
                     <?php foreach ($logoFields as $field => $label): ?>
-                        <?php $savedImage = $configValues[$field] ?? ''; ?>
+                        <?php $previewData = $logoPreviewData[$field] ?? ''; ?>
                         <div class="logos-preview-card">
                             <div class="logos-preview-label"><?php echo htmlspecialchars($label); ?></div>
                             <img data-preview-img="<?php echo $field; ?>"
-                                 src="<?php echo $savedImage ? 'data:image/png;base64,' . htmlspecialchars($savedImage) : ''; ?>"
+                                 src="<?php echo $previewData ? 'data:image/png;base64,' . htmlspecialchars($previewData) : ''; ?>"
                                  alt="<?php echo htmlspecialchars($label); ?>"
-                                 style="display: <?php echo $savedImage ? 'block' : 'none'; ?>;">
+                                 style="display: <?php echo $previewData ? 'block' : 'none'; ?>;">
                             <div class="logos-preview-placeholder"
                                  data-preview-placeholder="<?php echo $field; ?>"
-                                 style="display: <?php echo $savedImage ? 'none' : 'flex'; ?>;">
+                                 style="display: <?php echo $previewData ? 'none' : 'flex'; ?>;">
                                 Nenhuma imagem configurada
                             </div>
                         </div>

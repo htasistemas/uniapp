@@ -43,6 +43,13 @@ class PluginUniappConfig extends CommonDBTM
         'color_splash_primary_on'    => '#FFFFFF',
     ];
 
+    private const LOGO_STORAGE_MAP = [
+        'app_logo_png'   => 'logo.png',
+        'app_splash_png' => 'splash.png',
+    ];
+
+    private const LOGOS_SUBDIR = 'uniapp/logos';
+
     /** @var array<string,string>|null */
     private static $cache = null;
 
@@ -54,6 +61,90 @@ class PluginUniappConfig extends CommonDBTM
     public static function getDefaultColors(): array
     {
         return self::COLOR_FIELDS;
+    }
+
+    public static function getLogosDirectory(): string
+    {
+        if (!defined('GLPI_PLUGIN_DOC_DIR')) {
+            $base = defined('GLPI_DOC_DIR') ? rtrim(GLPI_DOC_DIR, '/') : '';
+            if ($base === '') {
+                $base = '/';
+            }
+            return $base . '/' . self::LOGOS_SUBDIR;
+        }
+
+        return rtrim(GLPI_PLUGIN_DOC_DIR, '/') . '/' . self::LOGOS_SUBDIR;
+    }
+
+    public static function ensureLogosDirectory(): bool
+    {
+        $dir = self::getLogosDirectory();
+        if (is_dir($dir)) {
+            return true;
+        }
+
+        return mkdir($dir, 0755, true);
+    }
+
+    public static function getLogoStorageFilename(string $field): ?string
+    {
+        return self::LOGO_STORAGE_MAP[$field] ?? null;
+    }
+
+    public static function getLogoBase64(string $field): string
+    {
+        $filename = self::normalizeLogoValue($field);
+        if ($filename === '') {
+            return '';
+        }
+
+        $path = self::getLogosDirectory() . '/' . basename($filename);
+        if (!is_file($path)) {
+            return '';
+        }
+
+        $content = file_get_contents($path);
+        return $content === false ? '' : base64_encode($content);
+    }
+
+    private static function normalizeLogoValue(string $field): string
+    {
+        $value = trim((string)self::get($field, ''));
+        if ($value === '') {
+            return '';
+        }
+
+        $storageDir = self::getLogosDirectory();
+        if (!self::ensureLogosDirectory()) {
+            return '';
+        }
+
+        $targetName = self::getLogoStorageFilename($field);
+        if ($targetName === null) {
+            $targetName = basename($value);
+        }
+
+        $path = $storageDir . '/' . $targetName;
+        if ($value === $targetName && is_file($path)) {
+            return $targetName;
+        }
+
+        $cleanValue = preg_replace('/\\s+/', '', $value);
+        if ($cleanValue !== '' && strlen($cleanValue) > 64 && preg_match('/^[A-Za-z0-9+\\/=]+$/', $cleanValue)) {
+            $decoded = base64_decode($cleanValue, true);
+            if ($decoded !== false) {
+                file_put_contents($path, $decoded, LOCK_EX);
+                @chmod($path, 0644);
+                self::save([$field => $targetName]);
+                return $targetName;
+            }
+        }
+
+        if (is_file($path)) {
+            return $targetName;
+        }
+
+        return '';
     }
 
     /**
