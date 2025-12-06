@@ -25,6 +25,8 @@ $defaultConfig = [
     'public_colors_rps'  => '300',
     'public_colors_version' => '0',
     'public_colors_updated_at' => '',
+    'public_logos_version' => '0',
+    'public_logos_updated_at' => '',
     'app_max_tickets'    => '500',
     'app_max_tickets_old'=> '10',
     'app_max_files'      => '5',
@@ -36,9 +38,6 @@ $defaultConfig = [
     'app_max_image_width'=> '300',
     'app_logo_png'       => '',
     'app_splash_png'     => '',
-    'app_icon_png'       => '',
-    'app_favicon_png'    => '',
-    'app_adaptive_icon_png' => '',
 
     // cores compartilhadas com o aplicativo
     'color_header'       => '#1A3557',
@@ -110,11 +109,8 @@ $notificationSections = [
 ];
 
 $logoFields = [
-    'app_logo_png'          => 'Logo do aplicativo (PNG)',
-    'app_splash_png'        => 'Splash (PNG)',
-    'app_icon_png'          => 'Ícone do app (PNG)',
-    'app_favicon_png'       => 'Favicon (PNG)',
-    'app_adaptive_icon_png' => 'Adaptive icon (PNG)'
+    'app_logo_png'   => 'Logo (PNG)',
+    'app_splash_png' => 'Splash (PNG)',
 ];
 
 $logoFieldKeys = array_keys($logoFields);
@@ -161,6 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
         $payload['public_colors_updated_at'] = gmdate('c');
     }
 
+    $logosDirty = false;
     foreach ($logoFieldKeys as $logoField) {
         if (empty($_FILES[$logoField]) || $_FILES[$logoField]['error'] === UPLOAD_ERR_NO_FILE) {
             continue;
@@ -201,6 +198,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
         }
 
         $payload[$logoField] = base64_encode($content);
+        $logosDirty = true;
+    }
+
+    if ($logosDirty) {
+        $currentVersion = max(0, (int)($configValues['public_logos_version'] ?? 0));
+        $payload['public_logos_version'] = (string)($currentVersion + 1);
+        $payload['public_logos_updated_at'] = gmdate('c');
     }
 
     if (empty($errors)) {
@@ -311,6 +315,15 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
     .section-heading { margin: 25px 20px 5px; font-size: 16px; font-weight: 600; color: var(--glpi-blue); }
     .section-description { margin: 0 20px 15px; font-size: 13px; color: #666; }
     .help-text { font-size: 11px; color: #888; margin-top: 4px; display: block; }
+    .logos-preview { margin: 20px 0 0; }
+    .logos-preview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; margin-top: 15px; }
+    .logos-preview-card { border: 1px solid #dcdcdc; border-radius: 6px; padding: 12px; background: #fff; min-height: 150px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+    .logos-preview-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #333; }
+    .logos-preview-card img { max-width: 100%; max-height: 120px; object-fit: contain; border: 1px solid #ececec;
+        border-radius: 4px; padding: 6px; background: #fff; }
+    .logos-preview-placeholder { width: 100%; min-height: 120px; display: flex; align-items: center; justify-content: center;
+        border: 1px dashed #ccc; border-radius: 4px; background: #fafafa; color: #777; font-size: 13px; padding: 6px; }
     @media (max-width: 768px) {
         .form-group { flex-direction: column; align-items: flex-start; }
         .label-col { width: 100%; text-align: left; margin-bottom: 5px; }
@@ -687,10 +700,10 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
         </div>
 
         <div class="tab-pane" id="tab-logos">
-            <div class="section-heading">Logos e ícones</div>
-            <div class="section-description">
-                No primeiro grupo estão as imagens usadas dentro do aplicativo; envie PNGs para hospedar essas artes.
-            </div>
+        <div class="section-heading">Logos</div>
+        <div class="section-description">
+            Envie PNGs para hospedar o logo e o splash usados pelo aplicativo.
+        </div>
             <?php foreach ($logoFields as $field => $label): ?>
                 <div class="form-group">
                     <div class="label-col">
@@ -708,6 +721,26 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
                     </div>
                 </div>
             <?php endforeach; ?>
+            <div class="logos-preview">
+                <div class="section-heading">Pré-visualização</div>
+                <div class="logos-preview-grid">
+                    <?php foreach ($logoFields as $field => $label): ?>
+                        <?php $savedImage = $configValues[$field] ?? ''; ?>
+                        <div class="logos-preview-card">
+                            <div class="logos-preview-label"><?php echo htmlspecialchars($label); ?></div>
+                            <img data-preview-img="<?php echo $field; ?>"
+                                 src="<?php echo $savedImage ? 'data:image/png;base64,' . htmlspecialchars($savedImage) : ''; ?>"
+                                 alt="<?php echo htmlspecialchars($label); ?>"
+                                 style="display: <?php echo $savedImage ? 'block' : 'none'; ?>;">
+                            <div class="logos-preview-placeholder"
+                                 data-preview-placeholder="<?php echo $field; ?>"
+                                 style="display: <?php echo $savedImage ? 'none' : 'flex'; ?>;">
+                                Nenhuma imagem configurada
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
         </div>
 
         <div class="form-actions">
@@ -766,6 +799,36 @@ document.addEventListener('DOMContentLoaded', () => {
             if (/^#[0-9A-F]{6}$/i.test(value)) {
                 picker.value = value.toUpperCase();
             }
+        });
+    });
+
+    const logoPreviewFields = <?php echo json_encode(array_keys($logoFields), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+
+    logoPreviewFields.forEach((field) => {
+        const fileInput = document.getElementById(field);
+        const previewImage = document.querySelector(`[data-preview-img="${field}"]`);
+        const placeholder = document.querySelector(`[data-preview-placeholder="${field}"]`);
+        if (!fileInput || !previewImage || !placeholder) {
+            return;
+        }
+
+        fileInput.addEventListener('change', () => {
+            const file = fileInput.files && fileInput.files[0];
+            if (!file) {
+                const hasImage = previewImage.getAttribute('src');
+                previewImage.style.display = hasImage ? 'block' : 'none';
+                placeholder.style.display = hasImage ? 'none' : 'flex';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.addEventListener('load', (event) => {
+                const result = event.target ? event.target.result : '';
+                previewImage.src = result;
+                previewImage.style.display = 'block';
+                placeholder.style.display = 'none';
+            });
+            reader.readAsDataURL(file);
         });
     });
 });

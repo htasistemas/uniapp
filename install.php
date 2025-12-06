@@ -87,6 +87,8 @@ $parameters = [
     "public_colors_rps"     => "300",
     "public_colors_version" => "0",
     "public_colors_updated_at" => "",
+    "public_logos_version"  => "0",
+    "public_logos_updated_at" => "",
     "app_max_tickets"       => "500",
     "app_max_tickets_old"   => "10",
     "app_max_files"         => "5",
@@ -97,10 +99,7 @@ $parameters = [
     "app_max_image_height"  => "400",
     "app_max_image_width"   => "300",
     "app_logo_png"          => "",
-    "app_splash_png"        => "",
-    "app_icon_png"          => "",
-    "app_favicon_png"       => "",
-    "app_adaptive_icon_png" => ""
+    "app_splash_png"        => ""
 ];
 
 // Leitura opcional de uniapp.cfg (compatibilidade)
