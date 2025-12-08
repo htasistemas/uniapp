@@ -4,6 +4,7 @@ require_once GLPI_ROOT . '/inc/includes.php';
 
 Plugin::load('uniapp');
 require_once __DIR__ . '/../inc/PluginUniappConfig.class.php';
+require_once __DIR__ . '/public-rate-limit.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -19,9 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-$limit = get_public_colors_rate_limit();
+$limit = get_public_rate_limit();
 if ($limit > 0) {
-    enforce_public_colors_rate_limit($limit);
+    enforce_public_rate_limit($limit, 1.0, 'uniapp-public-colors-rate.json');
 }
 
 $defaultColors = PluginUniappConfig::getDefaultColors();
@@ -41,73 +42,3 @@ echo json_encode([
     'settings'   => ['rate_limit' => $limit],
     'colors'     => $colors
 ], JSON_UNESCAPED_SLASHES);
-
-/**
- * @return int
- */
-function get_public_colors_rate_limit(): int
-{
-    static $limit = null;
-    if ($limit !== null) {
-        return $limit;
-    }
-
-    $raw = PluginUniappConfig::get('public_colors_rps', '300');
-    $value = (int)$raw;
-    if ($value <= 0) {
-        $value = 300;
-    }
-
-    $limit = $value;
-    return $limit;
-}
-
-/**
- * Bloqueia a API quando a taxa configurada por segundo for ultrapassada.
- */
-function enforce_public_colors_rate_limit(int $limit, float $windowSeconds = 1.0): void
-{
-    $storage = sys_get_temp_dir() . '/uniapp-public-colors-rate.json';
-    $windowKey = (int)floor(microtime(true) / $windowSeconds);
-    $state = ['window' => $windowKey, 'count' => 0];
-
-    $handle = @fopen($storage, 'c+b');
-    if (!$handle) {
-        return;
-    }
-
-    if (!flock($handle, LOCK_EX)) {
-        fclose($handle);
-        return;
-    }
-
-    $content = stream_get_contents($handle);
-    if ($content !== '') {
-        $existing = json_decode($content, true);
-        if (is_array($existing) && isset($existing['window'], $existing['count'])) {
-            if ((int)$existing['window'] === $windowKey) {
-                $state['count'] = max(0, (int)$existing['count']);
-            }
-        }
-    }
-
-    if ($state['count'] >= $limit) {
-        flock($handle, LOCK_UN);
-        fclose($handle);
-        http_response_code(429);
-        echo json_encode([
-            'success' => false,
-            'error'   => 'Limite temporario atingido'
-        ], JSON_UNESCAPED_SLASHES);
-        exit;
-    }
-
-    $state['count']++;
-
-    ftruncate($handle, 0);
-    rewind($handle);
-    fwrite($handle, json_encode($state));
-    fflush($handle);
-    flock($handle, LOCK_UN);
-    fclose($handle);
-}

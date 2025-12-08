@@ -4,6 +4,7 @@ require_once GLPI_ROOT . '/inc/includes.php';
 
 Plugin::load('uniapp');
 require_once __DIR__ . '/../../inc/PluginUniappConfig.class.php';
+require_once __DIR__ . '/../public-rate-limit.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -30,6 +31,11 @@ $allowedResources = [
 
 if ($resource === '' || !array_key_exists($resource, $allowedResources)) {
     respond(['success' => false, 'error' => 'Recurso nao encontrado'], 404);
+}
+
+$limit = get_public_rate_limit();
+if ($limit > 0) {
+    enforce_public_rate_limit($limit, 1.0, 'uniapp-public-logos-rate.json');
 }
 
 $image = PluginUniappConfig::getLogoBase64($allowedResources[$resource]);

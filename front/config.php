@@ -438,23 +438,151 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
         <input type="hidden" name="PluginUniappConfig" value="1">
 
         <div class="config-tabs">
-            <button type="button" class="tab-button active" data-tab="tab-cores">Cores</button>
+            <button type="button" class="tab-button active" data-tab="tab-parametros">Parâmetros gerais</button>
+            <button type="button" class="tab-button" data-tab="tab-cores">Cores</button>
             <button type="button" class="tab-button" data-tab="tab-notificacoes">Notificações</button>
-            <button type="button" class="tab-button" data-tab="tab-parametros">Parâmetros gerais</button>
             <button type="button" class="tab-button" data-tab="tab-logos">Logos</button>
         </div>
 
-        <div class="tab-pane active" id="tab-cores">
+        <div class="tab-pane active" id="tab-parametros">
+            <div class="section-heading">Configurações do app</div>
             <div class="section-description">
-                Escolha as cores que o aplicativo deve expor nos diferentes contextos antes de salvar.
+                Ajuste o comportamento do aplicativo móvel sem precisar recompilar o binário; todos os valores abaixo são expostos em <code>front/parametros-gerais.php</code>.
             </div>
+
             <div class="form-group">
                 <div class="label-col"><label for="public_colors_rps">Limite de consultas por segundo</label></div>
                 <div class="input-col">
                     <input type="number" id="public_colors_rps" name="public_colors_rps" min="1"
                            value="<?php echo htmlspecialchars($configValues['public_colors_rps'] ?? '300'); ?>">
-                    <span class="help-text">Defina quantas chamadas por segundo a API pública de cores deve permitir antes de começar a recusar.</span>
+                    <span class="help-text">Define quantas chamadas por segundo os endpoints públicos de cores e logos devem permitir antes de começar a recusar.</span>
                 </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="enable_attachments">Incluir anexos</label></div>
+                <div class="input-col">
+                    <label class="switch">
+                        <input type="checkbox" id="enable_attachments" name="enable_attachments"
+                            <?php echo ($configValues['enable_attachments'] ?? '0') === '1' ? 'checked' : ''; ?>>
+                        <span class="slider"></span>
+                    </label>
+                    <span style="color:#666;">Permite o app anexar arquivos nos tickets.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_max_tickets">Máximo de tickets recentes</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_max_tickets" name="app_max_tickets" min="1"
+                           value="<?php echo htmlspecialchars($configValues['app_max_tickets'] ?? '500'); ?>">
+                    <span class="help-text">Quantidade máxima de tickets abertos exibidos.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_max_tickets_old">Máximo de tickets antigos</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_max_tickets_old" name="app_max_tickets_old" min="0"
+                           value="<?php echo htmlspecialchars($configValues['app_max_tickets_old'] ?? '10'); ?>">
+                    <span class="help-text">Quantidade máxima de tickets em estado antigo.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_max_files">Máximo de anexos</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_max_files" name="app_max_files" min="1"
+                           value="<?php echo htmlspecialchars($configValues['app_max_files'] ?? '5'); ?>">
+                    <span class="help-text">Número máximo de arquivos permitidos por envio.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_max_file_size_mb">Tamanho máximo de arquivo (MB)</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_max_file_size_mb" name="app_max_file_size_mb" min="1"
+                           value="<?php echo htmlspecialchars($configValues['app_max_file_size_mb'] ?? '2'); ?>">
+                    <span class="help-text">Tamanho máximo em megabytes por anexo.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_grid_space">Espaçamento da grade</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_grid_space" name="app_grid_space" min="0"
+                           value="<?php echo htmlspecialchars($configValues['app_grid_space'] ?? '5'); ?>">
+                    <span class="help-text">Espaço (px) usado para espaçar elementos em listas no app.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_text_scale">Escala de texto</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_text_scale" name="app_text_scale" min="0.1" step="0.1"
+                           value="<?php echo htmlspecialchars($configValues['app_text_scale'] ?? '1'); ?>">
+                    <span class="help-text">Multiplicador aplicado aos textos (1.0 = 100%).</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_icon_scale">Escala de ícones</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_icon_scale" name="app_icon_scale" min="0.1" step="0.1"
+                           value="<?php echo htmlspecialchars($configValues['app_icon_scale'] ?? '1'); ?>">
+                    <span class="help-text">Multiplicador aplicado aos ícones (1.0 = 100%).</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_max_image_height">Altura máxima de imagem</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_max_image_height" name="app_max_image_height" min="0"
+                           value="<?php echo htmlspecialchars($configValues['app_max_image_height'] ?? '400'); ?>">
+                    <span class="help-text">Altura máxima desejada (px) para miniaturas.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="app_max_image_width">Largura máxima de imagem</label></div>
+                <div class="input-col">
+                    <input type="number" id="app_max_image_width" name="app_max_image_width" min="0"
+                           value="<?php echo htmlspecialchars($configValues['app_max_image_width'] ?? '300'); ?>">
+                    <span class="help-text">Largura máxima desejada (px) para miniaturas.</span>
+                </div>
+            </div>
+
+            <div class="section-heading">Logs e auditoria</div>
+            <div class="section-description">
+                Ative o registro em arquivo caso queira acompanhar as operações do plugin.
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="write_log">Gerar log</label></div>
+                <div class="input-col">
+                    <label class="switch">
+                        <input type="checkbox" id="write_log" name="write_log"
+                            <?php echo ($configValues['write_log'] ?? '0') === '1' ? 'checked' : ''; ?>>
+                        <span class="slider"></span>
+                    </label>
+                    <span class="help-text">Habilita o arquivo definido abaixo. Deixe desmarcado para desativar.</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="label-col"><label for="log_file">Caminho do arquivo de log</label></div>
+                <div class="input-col">
+                    <input type="text" id="log_file" name="log_file"
+                           value="<?php echo htmlspecialchars($configValues['log_file'] ?? ''); ?>"
+                           placeholder="/caminho/para/uniapp.log">
+                    <span class="help-text">Informe um caminho absoluto válido. Deixe em branco para usar o log interno do GLPI.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane" id="tab-cores">
+            <div class="section-description">
+                Escolha as cores que o aplicativo deve expor nos diferentes contextos antes de salvar.
             </div>
             <?php foreach ($colorGroups as $groupLabel => $fields): ?>
                 <div class="colors-group">
@@ -585,133 +713,6 @@ Html::header(__('Configuração UniApp', 'uniapp'), $SELFURL, 'plugins', 'uniapp
                         </div>
                     </div>
             <?php endforeach; ?>
-            </div>
-        </div>
-
-        <div class="tab-pane" id="tab-parametros">
-            <div class="section-heading">Configurações do app</div>
-            <div class="section-description">
-                Ajuste o comportamento do aplicativo móvel sem precisar recompilar o binário; todos os valores abaixo são expostos em <code>front/parametros-gerais.php</code>.
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="enable_attachments">Incluir anexos</label></div>
-                <div class="input-col">
-                    <label class="switch">
-                        <input type="checkbox" id="enable_attachments" name="enable_attachments"
-                            <?php echo ($configValues['enable_attachments'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                        <span class="slider"></span>
-                    </label>
-                    <span style="color:#666;">Permite o app anexar arquivos nos tickets.</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="app_max_tickets">Máximo de tickets recentes</label></div>
-                <div class="input-col">
-                    <input type="number" id="app_max_tickets" name="app_max_tickets" min="1"
-                           value="<?php echo htmlspecialchars($configValues['app_max_tickets'] ?? '500'); ?>">
-                    <span class="help-text">Quantidade máxima de tickets abertos exibidos.</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="app_max_tickets_old">Máximo de tickets antigos</label></div>
-                <div class="input-col">
-                    <input type="number" id="app_max_tickets_old" name="app_max_tickets_old" min="0"
-                           value="<?php echo htmlspecialchars($configValues['app_max_tickets_old'] ?? '10'); ?>">
-                    <span class="help-text">Quantidade máxima de tickets em estado antigo.</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="app_max_files">Máximo de anexos</label></div>
-                <div class="input-col">
-                    <input type="number" id="app_max_files" name="app_max_files" min="1"
-                           value="<?php echo htmlspecialchars($configValues['app_max_files'] ?? '5'); ?>">
-                    <span class="help-text">Número máximo de arquivos permitidos por envio.</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="app_max_file_size_mb">Tamanho máximo de arquivo (MB)</label></div>
-                <div class="input-col">
-                    <input type="number" id="app_max_file_size_mb" name="app_max_file_size_mb" min="1"
-                           value="<?php echo htmlspecialchars($configValues['app_max_file_size_mb'] ?? '2'); ?>">
-                    <span class="help-text">Tamanho máximo em megabytes por anexo.</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="app_grid_space">Espaçamento da grade</label></div>
-                <div class="input-col">
-                    <input type="number" id="app_grid_space" name="app_grid_space" min="0"
-                           value="<?php echo htmlspecialchars($configValues['app_grid_space'] ?? '5'); ?>">
-                    <span class="help-text">Espaço (px) usado para espaçar elementos em listas no app.</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="app_text_scale">Escala de texto</label></div>
-                <div class="input-col">
-                    <input type="number" id="app_text_scale" name="app_text_scale" min="0.1" step="0.1"
-                           value="<?php echo htmlspecialchars($configValues['app_text_scale'] ?? '1'); ?>">
-                    <span class="help-text">Multiplicador aplicado aos textos (1.0 = 100%).</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="app_icon_scale">Escala de ícones</label></div>
-                <div class="input-col">
-                    <input type="number" id="app_icon_scale" name="app_icon_scale" min="0.1" step="0.1"
-                           value="<?php echo htmlspecialchars($configValues['app_icon_scale'] ?? '1'); ?>">
-                    <span class="help-text">Multiplicador aplicado aos ícones (1.0 = 100%).</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="app_max_image_height">Altura máxima de imagem</label></div>
-                <div class="input-col">
-                    <input type="number" id="app_max_image_height" name="app_max_image_height" min="0"
-                           value="<?php echo htmlspecialchars($configValues['app_max_image_height'] ?? '400'); ?>">
-                    <span class="help-text">Altura máxima desejada (px) para miniaturas.</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="app_max_image_width">Largura máxima de imagem</label></div>
-                <div class="input-col">
-                    <input type="number" id="app_max_image_width" name="app_max_image_width" min="0"
-                           value="<?php echo htmlspecialchars($configValues['app_max_image_width'] ?? '300'); ?>">
-                    <span class="help-text">Largura máxima desejada (px) para miniaturas.</span>
-                </div>
-            </div>
-
-            <div class="section-heading">Logs e auditoria</div>
-            <div class="section-description">
-                Ative o registro em arquivo caso queira acompanhar as operações do plugin.
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="write_log">Gerar log</label></div>
-                <div class="input-col">
-                    <label class="switch">
-                        <input type="checkbox" id="write_log" name="write_log"
-                            <?php echo ($configValues['write_log'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                        <span class="slider"></span>
-                    </label>
-                    <span class="help-text">Habilita o arquivo definido abaixo. Deixe desmarcado para desativar.</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <div class="label-col"><label for="log_file">Caminho do arquivo de log</label></div>
-                <div class="input-col">
-                    <input type="text" id="log_file" name="log_file"
-                           value="<?php echo htmlspecialchars($configValues['log_file'] ?? ''); ?>"
-                           placeholder="/caminho/para/uniapp.log">
-                    <span class="help-text">Informe um caminho absoluto válido. Deixe em branco para usar o log interno do GLPI.</span>
-                </div>
             </div>
         </div>
 
