@@ -1,62 +1,99 @@
 <?php
+// -------------------------------------------------------------------------
+// PASSO 1: Capturar Headers ANTES de carregar o GLPI
+// Isso é crucial para injetar o Session-Token no motor do PHP
+// -------------------------------------------------------------------------
+$session_id = '';
+
+// Tenta pegar via $_SERVER (Padrão Apache/Nginx fastcgi)
+if (isset($_SERVER['HTTP_SESSION_TOKEN'])) {
+    $session_id = trim($_SERVER['HTTP_SESSION_TOKEN']);
+}
+// Fallback para getallheaders se necessário
+elseif (function_exists('getallheaders')) {
+    $headers = getallheaders();
+    foreach ($headers as $key => $value) {
+        if (strcasecmp($key, 'Session-Token') === 0) {
+            $session_id = trim($value);
+            break;
+        }
+    }
+}
+
+// Se tivermos um token, forçamos o PHP a usar este ID de sessão
+if (!empty($session_id)) {
+    session_id($session_id);
+}
+
+// -------------------------------------------------------------------------
+// PASSO 2: Carregar o GLPI
+// -------------------------------------------------------------------------
 define('GLPI_ROOT', dirname(__DIR__, 3));
 require_once GLPI_ROOT . '/inc/includes.php';
 
+// Configurar Response JSON
 header('Content-Type: application/json; charset=utf-8');
 
+// Carrega o Plugin
 Plugin::load('uniapp');
 require_once __DIR__ . '/../inc/PluginUniappEvent.class.php';
 require_once __DIR__ . '/../inc/PluginUniappConfig.class.php';
+
+// -------------------------------------------------------------------------
+// PASSO 3: Validações
+// -------------------------------------------------------------------------
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     respondJson(['success' => false, 'message' => 'Método não permitido'], 405);
 }
 
+// Validar App-Token (Mantive sua lógica manual, mas simplificada)
 $appToken = getRequestHeader('App-Token');
-if (trim($appToken) === '') {
-    logSyncFailure('App-Token ausente');
-    respondJson(['success' => false, 'error' => 'App-Token ausente', 'message' => 'App-Token ausente'], 401);
+if (empty($appToken) || !isValidAppToken($appToken)) {
+    logSyncFailure('App-Token inválido ou ausente');
+    respondJson(['success' => false, 'error' => 'App-Token inválido'], 401);
 }
 
-if (!isValidAppToken($appToken)) {
-    logSyncFailure('App-Token inválido', ['app_token' => maskToken($appToken)]);
-    respondJson(['success' => false, 'error' => 'App-Token inválido', 'message' => 'App-Token inválido'], 401);
-}
-
-$sessionToken = getRequestHeader('Session-Token');
-if (trim($sessionToken) === '') {
-    logSyncFailure('Session-Token ausente');
-    respondJson(['success' => false, 'error' => 'Session-Token ausente', 'message' => 'Session-Token ausente'], 401);
-}
-
-$rawBody = file_get_contents('php://input');
-$input = json_decode($rawBody, true);
-if (!is_array($input)) {
-    respondJson(['success' => false, 'error' => 'JSON inválido', 'message' => 'JSON inválido'], 400);
-}
-
-$user_id  = isset($input['user_id']) ? (int)$input['user_id'] : null;
-$fcmToken = isset($input['token']) ? trim((string)$input['token']) : null;
-
-if (!$user_id || $fcmToken === '') {
-    respondJson(['success' => false, 'error' => 'Parâmetros ausentes', 'message' => 'Parâmetros ausentes'], 400);
-}
-
-$userIdFromSession = getUserIdBySessionToken($sessionToken);
-if ($userIdFromSession === null) {
-    logSyncFailure('Sessão inválida', ['session_token' => maskToken($sessionToken)]);
+// Validar Sessão usando NATIVO do GLPI
+// Como fizemos o session_id() lá em cima, o GLPI já carregou o usuário se o token for válido.
+if (!Session::getLoginUserID()) {
+    logSyncFailure('Sessão inválida ou expirada (GLPI Core)');
     respondJson(['success' => false, 'error' => 'Sessão expirada', 'message' => 'Sessão expirada'], 401);
 }
 
-if ($userIdFromSession !== $user_id) {
+// Ler Input
+$rawBody = file_get_contents('php://input');
+$input = json_decode($rawBody, true);
+
+$user_id_payload = isset($input['user_id']) ? (int)$input['user_id'] : 0;
+$fcmToken        = isset($input['token']) ? trim((string)$input['token']) : '';
+
+if (!$user_id_payload || empty($fcmToken)) {
+    respondJson(['success' => false, 'error' => 'Parâmetros ausentes'], 400);
+}
+
+// Validar se o usuário da sessão é o mesmo do payload
+if (Session::getLoginUserID() !== $user_id_payload) {
     respondJson([
         'success' => false,
-        'error'   => 'Sessão não pertence ao usuário informado',
-        'message' => 'Sessão não pertence ao usuário informado'
+        'error' => 'ID do usuário não corresponde à sessão ativa'
     ], 403);
 }
 
-$result = PluginUniappEvent::saveUserFcmToken($user_id, $fcmToken);
+// -------------------------------------------------------------------------
+// PASSO 4: Ação (Salvar Token)
+// -------------------------------------------------------------------------
+
+// NOTA: Se PluginUniappEvent::saveUserFcmToken precisar de permissão de Super-Admin,
+// você deve lidar com isso dentro da classe do evento ou usar sudo aqui.
+// Exemplo de impersonate temporário (caso necessário):
+/*
+if (Session::isCron() || true) { // Se precisar burlar permissão
+   // Lógica de update direto no DB sem passar por validação de direitos da classe User
+}
+*/
+
+$result = PluginUniappEvent::saveUserFcmToken($user_id_payload, $fcmToken);
 
 if (is_array($result)) {
     if (!empty($result['success'])) {
@@ -65,191 +102,67 @@ if (is_array($result)) {
             'already_synced' => !empty($result['already_synced'])
         ]);
     }
-
     respondJson([
         'success' => false,
-        'error'   => $result['message'] ?? 'Falha ao atualizar o token',
-        'message' => $result['message'] ?? 'Falha ao atualizar o token'
+        'error'   => $result['message'] ?? 'Falha ao processar'
     ], 500);
 }
 
-respondJson(['success' => false, 'error' => 'Falha inesperada ao salvar token', 'message' => 'Falha inesperada ao salvar token'], 500);
+respondJson(['success' => false, 'error' => 'Falha desconhecida'], 500);
 
-/**
- * Reads a request header in a case-insensitive way.
- *
- * @param string $name
- * @return string
- */
+
+// -------------------------------------------------------------------------
+// Helpers
+// -------------------------------------------------------------------------
+
 function getRequestHeader(string $name): string
 {
-    $serverKey = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
-    if (isset($_SERVER[$serverKey])) {
-        return trim((string)$_SERVER[$serverKey]);
-    }
-
-    if (function_exists('getallheaders')) {
-        $headers = getallheaders();
-        foreach ($headers as $header => $value) {
-            if (strcasecmp($header, $name) === 0) {
-                return trim((string)$value);
-            }
-        }
-    }
-
-    return '';
+    // Reutilizando sua lógica ou $_SERVER direto
+    $key = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
+    return isset($_SERVER[$key]) ? trim($_SERVER[$key]) : '';
 }
 
-/**
- * Checks if the given App-Token exists in GLPI.
- */
-function isValidAppToken(string $token): bool
-{
-    global $DB;
-
-    if ($token === '') {
-        return false;
-    }
-
-    $tables = [
-        'glpi_apptokens'  => ['token', 'value', 'apptoken'],
-        'glpi_apiclients' => ['app_token', 'token', 'value', 'apptoken']
-    ];
-
-    foreach ($tables as $table => $candidates) {
-        if (!$DB->tableExists($table)) {
-            continue;
-        }
-
-        $column = resolveTokenColumn($table, $candidates);
-        if ($column === '') {
-            continue;
-        }
-
-        $result = $DB->request([
-            'SELECT' => [$column],
-            'FROM'   => $table,
-            'WHERE'  => [$column => $token],
-            'LIMIT'  => 1
-        ]);
-
-        foreach ($result as $_) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-/**
- * Returns the user_id associated with the provided session token.
- */
-function getUserIdBySessionToken(string $token): ?int
-{
-    global $DB;
-
-    if ($token === '') {
-        return null;
-    }
-
-    $table = 'glpi_sessions';
-    if (!$DB->tableExists($table)) {
-        return null;
-    }
-
-    $tokenColumn = resolveTokenColumn($table, ['session', 'session_value']);
-    $userColumn = resolveTokenColumn($table, ['users_id', 'userid', 'user_id']);
-
-    if ($tokenColumn === '' || $userColumn === '') {
-        return null;
-    }
-
-    $result = $DB->request([
-        'SELECT' => [$userColumn],
-        'FROM'   => $table,
-        'WHERE'  => [$tokenColumn => $token],
-        'LIMIT'  => 1
-    ]);
-
-    foreach ($result as $row) {
-        return (int)($row[$userColumn] ?? 0);
-    }
-
-    return null;
-}
-
-/**
- * Attempts to resolve an existing column name from the provided candidates.
- */
-function resolveTokenColumn(string $table, array $candidates): string
-{
-    global $DB;
-
-    static $cache = [];
-    $key = $table . '|' . implode(',', $candidates);
-    if (isset($cache[$key])) {
-        return $cache[$key];
-    }
-
-    $column = '';
-    try {
-        $columns = $DB->request(['QUERY' => sprintf('SHOW COLUMNS FROM `%s`', $table)]);
-        foreach ($columns as $row) {
-            $name = strtolower((string)($row['Field'] ?? ''));
-            foreach ($candidates as $candidate) {
-                if ($name === strtolower($candidate)) {
-                    $column = $name;
-                    break 2;
-                }
-            }
-        }
-    } catch (Throwable $e) {
-        $column = '';
-    }
-
-    $cache[$key] = $column;
-    return $column;
-}
-
-/**
- * Writes a brief entry to the plugin log (if configured) and PHP error log.
- */
-function logSyncFailure(string $message, array $context = []): void
-{
-    $prefix = '[UniApp sync_fcm_token]';
-    $entry = sprintf('%s %s %s', gmdate('c'), $prefix, $message);
-    if (!empty($context)) {
-        $entry .= ' ' . json_encode($context, JSON_UNESCAPED_UNICODE);
-    }
-
-    $logFile = PluginUniappConfig::get('log_file', '');
-    $writeLog = PluginUniappConfig::get('write_log', '0') === '1';
-    if ($writeLog && $logFile !== '') {
-        @file_put_contents($logFile, $entry . PHP_EOL, FILE_APPEND | LOCK_EX);
-    }
-
-    error_log($entry);
-}
-
-function maskToken(string $token): string
-{
-    if ($token === '') {
-        return '';
-    }
-
-    if (strlen($token) <= 8) {
-        return $token;
-    }
-
-    return substr($token, 0, 4) . '…' . substr($token, -4);
-}
-
-/**
- * Sends a JSON response and terminates execution.
- */
 function respondJson(array $payload, int $statusCode = 200): void
 {
     http_response_code($statusCode);
     echo json_encode($payload, JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+function logSyncFailure(string $message): void {
+    // Implementação simplificada do seu log
+    $entry = "[UniApp] " . $message;
+    error_log($entry);
+}
+
+// Mantive sua função de validação de AppToken pois ela faz query direta segura
+function isValidAppToken(string $token): bool
+{
+    global $DB;
+    if (empty($token)) return false;
+
+    // Tabelas comuns onde tokens residem
+    $tables = ['glpi_apptokens', 'glpi_apiclients'];
+
+    foreach ($tables as $table) {
+        if (!$DB->tableExists($table)) continue;
+
+        // Verifica colunas comuns de token
+        $col = ($table === 'glpi_apiclients') ? 'app_token' : 'token';
+        // Fallback check se a coluna existe
+        if (!$DB->fieldExists($table, $col)) {
+             if ($DB->fieldExists($table, 'value')) $col = 'value'; // GLPI antigos
+             else continue;
+        }
+
+        $iterator = $DB->request([
+            'SELECT' => 'id',
+            'FROM'   => $table,
+            'WHERE'  => [$col => $token],
+            'LIMIT'  => 1
+        ]);
+
+        if (count($iterator) > 0) return true;
+    }
+    return false;
 }
