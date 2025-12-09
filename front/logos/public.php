@@ -38,7 +38,18 @@ if ($limit > 0) {
     enforce_public_rate_limit($limit, 1.0, 'uniapp-public-logos-rate.json');
 }
 
-$image = PluginUniappConfig::getLogoBase64($allowedResources[$resource]);
+$logoField = $allowedResources[$resource];
+$logoPath = PluginUniappConfig::getLogoPath($logoField);
+$image = '';
+$logoUrl = '';
+
+if ($logoPath !== '') {
+    $content = file_get_contents($logoPath);
+    if ($content !== false) {
+        $image = base64_encode($content);
+    }
+    $logoUrl = build_logo_public_url($logoPath);
+}
 
 $version = PluginUniappConfig::get('public_logos_version', '0');
 $updatedAt = PluginUniappConfig::get('public_logos_updated_at', '');
@@ -48,7 +59,8 @@ respond([
     'resource'   => $resource,
     'version'    => $version,
     'updated_at' => $updatedAt,
-    'image'      => $image
+    'image'      => $image,
+    'url'        => $logoUrl
 ]);
 
 /**
@@ -62,4 +74,38 @@ function respond(array $payload, int $statusCode = 200): void
     http_response_code($statusCode);
     echo json_encode($payload, JSON_UNESCAPED_SLASHES);
     exit;
+}
+
+function build_logo_public_url(string $logoPath): string
+{
+    global $CFG_GLPI;
+
+    if (!defined('GLPI_DOC_DIR')) {
+        return '';
+    }
+
+    $docDir = rtrim(GLPI_DOC_DIR, '/');
+    if ($docDir === '') {
+        return '';
+    }
+
+    if (strpos($logoPath, $docDir) !== 0) {
+        return '';
+    }
+
+    $relativePath = trim(substr($logoPath, strlen($docDir)), '/');
+    if ($relativePath === '') {
+        return '';
+    }
+
+    $docBaseName = basename($docDir);
+    if ($docBaseName === '') {
+        return '';
+    }
+
+    $rootDoc = isset($CFG_GLPI['root_doc']) ? rtrim((string)$CFG_GLPI['root_doc'], '/') : '';
+    $url = ($rootDoc !== '' ? $rootDoc : '') . '/' . $docBaseName;
+    $url .= '/' . ltrim($relativePath, '/');
+
+    return $url;
 }

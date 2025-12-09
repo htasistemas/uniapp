@@ -93,18 +93,27 @@ class PluginUniappConfig extends CommonDBTM
 
     public static function getLogoBase64(string $field): string
     {
+        $path = self::getLogoPath($field);
+        if ($path === '') {
+            return '';
+        }
+
+        $content = file_get_contents($path);
+        return $content === false ? '' : base64_encode($content);
+    }
+
+    /**
+     * Returns the filesystem path where the logo is stored, or an empty string.
+     */
+    public static function getLogoPath(string $field): string
+    {
         $filename = self::normalizeLogoValue($field);
         if ($filename === '') {
             return '';
         }
 
         $path = self::getLogosDirectory() . '/' . basename($filename);
-        if (!is_file($path)) {
-            return '';
-        }
-
-        $content = file_get_contents($path);
-        return $content === false ? '' : base64_encode($content);
+        return is_file($path) ? $path : '';
     }
 
     private static function normalizeLogoValue(string $field): string
