@@ -38,18 +38,16 @@ if ($limit > 0) {
     enforce_public_rate_limit($limit, 1.0, 'uniapp-public-logos-rate.json');
 }
 
-$logoField = $allowedResources[$resource];
-$logoPath = PluginUniappConfig::getLogoPath($logoField);
-$image = '';
-$logoUrl = '';
-
-if ($logoPath !== '') {
-    $content = file_get_contents($logoPath);
-    if ($content !== false) {
-        $image = base64_encode($content);
+    $logoField = $allowedResources[$resource];
+    $logoPath = PluginUniappConfig::getLogoPath($logoField);
+    if ($logoPath === '') {
+        respond(['success' => false, 'resource' => $resource, 'error' => 'Logo nao configurada'], 404);
     }
+
     $logoUrl = build_logo_public_url($logoPath);
-}
+    if ($logoUrl === '') {
+        respond(['success' => false, 'resource' => $resource, 'error' => 'Nao foi possivel construir URL public da logo'], 500);
+    }
 
 $version = PluginUniappConfig::get('public_logos_version', '0');
 $updatedAt = PluginUniappConfig::get('public_logos_updated_at', '');
@@ -59,7 +57,6 @@ respond([
     'resource'   => $resource,
     'version'    => $version,
     'updated_at' => $updatedAt,
-    'image'      => $image,
     'url'        => $logoUrl
 ]);
 
