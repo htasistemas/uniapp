@@ -111,25 +111,31 @@ function isValidAppToken(string $token): bool
         return false;
     }
 
-    $table = 'glpi_apptokens';
-    if (!$DB->tableExists($table)) {
-        return false;
-    }
+    $tables = [
+        'glpi_apptokens'  => ['token', 'value', 'apptoken'],
+        'glpi_apiclients' => ['app_token', 'token', 'value', 'apptoken']
+    ];
 
-    $column = resolveTokenColumn($table, ['token', 'value', 'apptoken']);
-    if ($column === '') {
-        return false;
-    }
+    foreach ($tables as $table => $candidates) {
+        if (!$DB->tableExists($table)) {
+            continue;
+        }
 
-    $result = $DB->request([
-        'SELECT' => [$column],
-        'FROM'   => $table,
-        'WHERE'  => [$column => $token],
-        'LIMIT'  => 1
-    ]);
+        $column = resolveTokenColumn($table, $candidates);
+        if ($column === '') {
+            continue;
+        }
 
-    foreach ($result as $_) {
-        return true;
+        $result = $DB->request([
+            'SELECT' => [$column],
+            'FROM'   => $table,
+            'WHERE'  => [$column => $token],
+            'LIMIT'  => 1
+        ]);
+
+        foreach ($result as $_) {
+            return true;
+        }
     }
 
     return false;
