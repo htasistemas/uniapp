@@ -38,16 +38,16 @@ if ($limit > 0) {
     enforce_public_rate_limit($limit, 1.0, 'uniapp-public-logos-rate.json');
 }
 
-    $logoField = $allowedResources[$resource];
-    $logoPath = PluginUniappConfig::getLogoPath($logoField);
-    if ($logoPath === '') {
-        respond(['success' => false, 'resource' => $resource, 'error' => 'Logo nao configurada'], 404);
-    }
+$logoField = $allowedResources[$resource];
+$logoPath = PluginUniappConfig::getLogoPath($logoField);
+if ($logoPath === '') {
+    respond(['success' => false, 'resource' => $resource, 'error' => 'Logo nao configurada'], 404);
+}
 
-    $logoUrl = build_logo_public_url($logoPath);
-    if ($logoUrl === '') {
-        respond(['success' => false, 'resource' => $resource, 'error' => 'Nao foi possivel construir URL public da logo'], 500);
-    }
+$logoUrl = build_logo_proxy_url($resource);
+if ($logoUrl === '') {
+    respond(['success' => false, 'resource' => $resource, 'error' => 'Nao foi possivel construir URL publica da logo'], 500);
+}
 
 $version = PluginUniappConfig::get('public_logos_version', '0');
 $updatedAt = PluginUniappConfig::get('public_logos_updated_at', '');
@@ -73,36 +73,28 @@ function respond(array $payload, int $statusCode = 200): void
     exit;
 }
 
-function build_logo_public_url(string $logoPath): string
+function build_logo_proxy_url(string $resource): string
 {
     global $CFG_GLPI;
 
-    if (!defined('GLPI_DOC_DIR')) {
+    $webDir = Plugin::getWebDir('uniapp', true);
+    if ($webDir === '') {
         return '';
     }
 
-    $docDir = rtrim(GLPI_DOC_DIR, '/');
-    if ($docDir === '') {
-        return '';
+    $segments = [];
+    $rootDoc = isset($CFG_GLPI['root_doc']) ? trim((string)$CFG_GLPI['root_doc'], '/') : '';
+    if ($rootDoc !== '') {
+        $segments[] = $rootDoc;
     }
 
-    if (strpos($logoPath, $docDir) !== 0) {
-        return '';
+    $pluginDir = trim($webDir, '/');
+    if ($pluginDir !== '') {
+        $segments[] = $pluginDir;
     }
 
-    $relativePath = trim(substr($logoPath, strlen($docDir)), '/');
-    if ($relativePath === '') {
-        return '';
-    }
+    $segments[] = 'front/logos/image.php';
+    $segments[] = $resource;
 
-    $docBaseName = basename($docDir);
-    if ($docBaseName === '') {
-        return '';
-    }
-
-    $rootDoc = isset($CFG_GLPI['root_doc']) ? rtrim((string)$CFG_GLPI['root_doc'], '/') : '';
-    $url = ($rootDoc !== '' ? $rootDoc : '') . '/' . $docBaseName;
-    $url .= '/' . ltrim($relativePath, '/');
-
-    return $url;
+    return '/' . implode('/', array_filter($segments, 'strlen'));
 }
