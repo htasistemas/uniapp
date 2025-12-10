@@ -207,10 +207,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
         }
 
         $targetPath = PluginUniappConfig::getLogosDirectory() . '/' . $storageName;
-        if (!move_uploaded_file($tmpName, $targetPath)) {
-            $errors[] = sprintf(__('%s: falha ao mover o arquivo enviado.', 'uniapp'), $logoFields[$logoField]);
+
+        if (!function_exists('imagecreatefrompng') || !function_exists('imagesavealpha') || !function_exists('imagepng')) {
+            $errors[] = sprintf(
+                __('%s: a extensão GD não está disponível. Ative `extension=gd` no php.ini e reinicie o PHP/servidor para preservar transparência.', 'uniapp'),
+                $logoFields[$logoField]
+            );
             continue;
         }
+
+        $sourceImage = @imagecreatefrompng($tmpName);
+        if ($sourceImage === false) {
+            $errors[] = sprintf(__('%s: falha ao abrir o PNG enviado.', 'uniapp'), $logoFields[$logoField]);
+            continue;
+        }
+
+        imagesavealpha($sourceImage, true);
+        if (!@imagepng($sourceImage, $targetPath, 0)) {
+            imagedestroy($sourceImage);
+            $errors[] = sprintf(
+                __('%s: falha ao salvar o PNG; verifique permissões do diretório e da extensão GD.', 'uniapp'),
+                $logoFields[$logoField]
+            );
+            continue;
+        }
+        imagedestroy($sourceImage);
+
         @chmod($targetPath, 0644);
 
         $payload[$logoField] = $storageName;
